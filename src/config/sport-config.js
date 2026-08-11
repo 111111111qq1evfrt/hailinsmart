@@ -1,0 +1,326 @@
+export const sportConfig = {
+  longJump: {
+    id: 'longJump',
+    name: '立定跳远',
+    unit: '米',
+    precision: 2,
+    violationTypes: ['踩线'],
+    metrics: ['起跳角度', '腾空高度', '平均速度', '摆臂幅度', '腾空时间', '屈膝角'],
+    showTakeoffLine: true,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#1E5AA8'
+  },
+  sitUps: {
+    id: 'sitUps',
+    name: '仰卧起坐',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['未抱头', '未触膝', '未躺平'],
+    metrics: ['仰卧速度', '屈膝角', '身体弯曲角'],
+    showTakeoffLine: false,
+    showCountdown: true,
+    timeOptions: [30, 60, 120, 180, 240],
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#3B82F6'
+  },
+  sitAndReach: {
+    id: 'sitAndReach',
+    name: '坐位体前屈',
+    unit: '厘米',
+    precision: 1,
+    violationTypes: ['腿弯曲', '单手前驱', '加速冲击'],
+    metrics: ['姿态保持时长', '屈膝角', '身体弯曲角'],
+    showTakeoffLine: false,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#F5A623'
+  },
+  ropeSkipping: {
+    id: 'ropeSkipping',
+    name: '跳绳',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['垫脚跳', '单手甩绳', '交叉跳', '中途换人'],
+    metrics: ['跳绳频率', '平均速度', '耐力指数'],
+    showTakeoffLine: false,
+    showCountdown: true,
+    timeOptions: [30, 60, 120, 180, 240],
+    maxParticipants: 10,
+    multiTestEnabled: true,
+    defaultScore: '--',
+    color: '#E85D4E'
+  },
+  fiftyMeter: {
+    id: 'fiftyMeter',
+    name: '短跑',
+    unit: '秒',
+    precision: 2,
+    violationTypes: ['踩线', '抢跑'],
+    metrics: ['起跑反应时间', '平均速度', '最高速度'],
+    showTakeoffLine: true,
+    // 支持 50m 和 100m 切换
+    distanceOptions: [50, 100],
+    maxParticipants: 8,
+    defaultScore: '--',
+    color: '#8B5CF6'
+  },
+  fiftyMeter8: {
+    id: 'fiftyMeter8',
+    name: '50米*8往返跑',
+    unit: '秒',
+    precision: 2,
+    violationTypes: ['抢跑'],
+    metrics: ['单圈平均时间', '总距离', '平均速度'],
+    showTakeoffLine: true,
+    maxParticipants: 8,
+    laps: 8,
+    defaultScore: '--',
+    color: '#06B6D4'
+  },
+  pullUp: {
+    id: 'pullUp',
+    name: '引体向上',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['摆动借力', '未过杠'],
+    metrics: ['悬垂时间', '拉起速度', '耐力指数'],
+    showTakeoffLine: false,
+    showCountdown: true,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#EC4899'
+  },
+  running: {
+    id: 'running',
+    name: '长跑',
+    unit: '分秒',
+    precision: 2,
+    violationTypes: ['抢跑', '串道'],
+    metrics: ['平均配速', '总距离', '心率变化'],
+    showTakeoffLine: true,
+    distanceOptions: [800, 1000],
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#F97316'
+  },
+  bmi: {
+    id: 'bmi',
+    name: 'BMI测试',
+    unit: '',
+    precision: 1,
+    violationTypes: [],
+    metrics: ['身高', '体重', 'BMI指数'],
+    showTakeoffLine: false,
+    showCountdown: false,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#14B8A6'
+  },
+  vitalCapacity: {
+    id: 'vitalCapacity',
+    name: '肺活量',
+    unit: '毫升',
+    precision: 0,
+    violationTypes: [],
+    metrics: ['吹气力度', '吹气时长', '肺活量指数'],
+    showTakeoffLine: false,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#0EA5E9'
+  },
+  touchHigh: {
+    id: 'touchHigh',
+    name: '摸高',
+    unit: '厘米',
+    precision: 1,
+    violationTypes: ['双脚离地'],
+    metrics: ['摸高高度', '起跳角度'],
+    showTakeoffLine: false,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#8B5CF6'
+  },
+  jumpingJack: {
+    id: 'jumpingJack',
+    name: '开合跳',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['动作不规范'],
+    metrics: ['频率', '节奏稳定性'],
+    showTakeoffLine: false,
+    showCountdown: true,
+    timeOptions: [30, 60],
+    maxParticipants: 10,
+    defaultScore: '--',
+    color: '#EC4899'
+  },
+  highKnee: {
+    id: 'highKnee',
+    name: '高抬腿',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['抬腿高度不足'],
+    metrics: ['频率', '抬腿高度'],
+    showTakeoffLine: false,
+    showCountdown: true,
+    timeOptions: [30, 60],
+    maxParticipants: 10,
+    defaultScore: '--',
+    color: '#F97316'
+  },
+  hundredMeter: {
+    id: 'hundredMeter',
+    name: '100米跑',
+    unit: '秒',
+    precision: 2,
+    violationTypes: ['抢跑', '串道'],
+    metrics: ['起跑反应', '平均速度', '最高速度'],
+    showTakeoffLine: true,
+    maxParticipants: 8,
+    defaultScore: '--',
+    color: '#8B5CF6'
+  },
+  volleyball: {
+    id: 'volleyball',
+    name: '排球',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['连击', '持球'],
+    metrics: ['垫球次数', '动作规范性'],
+    showTakeoffLine: false,
+    maxParticipants: 2,
+    defaultScore: '--',
+    color: '#14B8A6'
+  },
+  squat: {
+    id: 'squat',
+    name: '深蹲',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['深度不足', '膝盖内扣'],
+    metrics: ['频率', '动作标准度'],
+    showTakeoffLine: false,
+    showCountdown: true,
+    timeOptions: [30, 60],
+    maxParticipants: 10,
+    defaultScore: '--',
+    color: '#06B6D4'
+  },
+  quadrantJump: {
+    id: 'quadrantJump',
+    name: '象限跳',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['踩线'],
+    metrics: ['反应速度', '跳跃准确性'],
+    showTakeoffLine: true,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#84CC16'
+  },
+  sunshineRun: {
+    id: 'sunshineRun',
+    name: '阳光跑',
+    unit: '米',
+    precision: 0,
+    violationTypes: ['中途停止', '走跑交替'],
+    metrics: ['总距离', '平均配速', '心率变化'],
+    showTakeoffLine: true,
+    maxParticipants: 10,
+    defaultScore: '--',
+    color: '#F59E0B'
+  },
+  football: {
+    id: 'football',
+    name: '足球',
+    unit: '秒',
+    precision: 2,
+    violationTypes: ['手球', '犯规'],
+    metrics: ['控球时间', '传球次数'],
+    showTakeoffLine: false,
+    maxParticipants: 22,
+    defaultScore: '--',
+    color: '#22C55E'
+  },
+  basketball: {
+    id: 'basketball',
+    name: '篮球',
+    unit: '秒',
+    precision: 2,
+    violationTypes: ['走步', '二次运球'],
+    metrics: ['运球次数', '投篮命中'],
+    showTakeoffLine: false,
+    maxParticipants: 10,
+    defaultScore: '--',
+    color: '#EF4444'
+  },
+  medicineBall: {
+    id: 'medicineBall',
+    name: '实心球',
+    unit: '米',
+    precision: 2,
+    violationTypes: ['踩线', '出手角度不对'],
+    metrics: ['投掷距离', '出手速度'],
+    showTakeoffLine: true,
+    maxParticipants: 1,
+    defaultScore: '--',
+    color: '#D946EF'
+  },
+  leftRightJump: {
+    id: 'leftRightJump',
+    name: '左右跳',
+    unit: '个',
+    precision: 0,
+    violationTypes: ['踩线'],
+    metrics: ['频率', '节奏稳定性'],
+    showTakeoffLine: true,
+    showCountdown: true,
+    timeOptions: [30, 60],
+    maxParticipants: 10,
+    defaultScore: '--',
+    color: '#6366F1'
+  }
+}
+
+export const sportList = Object.values(sportConfig)
+
+// 运动类型ID映射（大沩sport_type → 前端key）
+export const sportTypeMapping = {
+  1: 'ropeSkipping',
+  2: 'longJump',
+  3: 'touchHigh',
+  4: 'pullUp',
+  5: 'jumpingJack',
+  6: 'sitUps',
+  7: 'highKnee',
+  8: 'sitAndReach',
+  9: 'vitalCapacity',
+  10: 'bmi',
+  11: 'fiftyMeter',
+  12: 'hundredMeter',
+  13: 'fiftyMeter8',
+  14: 'running',
+  15: 'running',
+  16: 'volleyball',
+  17: 'squat',
+  18: 'quadrantJump',
+  19: 'sunshineRun',
+  20: 'football',
+  21: 'basketball',
+  22: 'medicineBall',
+  23: 'leftRightJump'
+}
+
+// 反向映射（前端key → 大沩sport_type）
+export const sportTypeReverseMapping = {}
+Object.entries(sportTypeMapping).forEach(([id, key]) => {
+  sportTypeReverseMapping[key] = Number(id)
+})
+
+// 根据大沩sport_type获取运动配置
+export function getSportConfigByType(type) {
+  const key = sportTypeMapping[type]
+  return key ? sportConfig[key] : null
+}

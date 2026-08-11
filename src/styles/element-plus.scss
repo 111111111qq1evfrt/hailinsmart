@@ -1,0 +1,250 @@
+/**
+ * Element Plus 主题定制
+ * 根据项目设计规范覆盖默认样式
+ */
+
+@use "sass:color";
+
+// 主题颜色配置
+$primary-color: #1E5AA8;
+$primary-light-1: #236B3A;
+$primary-light-2: #348A4E;
+$primary-dark-1: #1A4D7A;
+$primary-dark-2: #154068;
+
+// 成功色
+$success-color: #166534;
+$success-light: #DCFCE7;
+
+// 警告色
+$warning-color: #92400E;
+$warning-light: #FEF3C7;
+
+// 危险色
+$danger-color: #991B1B;
+$danger-light: #FEE2E2;
+
+// 信息色
+$info-color: #1E40AF;
+$info-light: #DBEAFE;
+
+// 中性色
+$text-primary-color: #1A1A2E;
+$text-regular-color: #6B7280;
+$text-secondary-color: #9CA3AF;
+$text-placeholder-color: #9CA3AF;
+
+$bg-color: #F7F8FA;
+$bg-color-page: #F7F8FA;
+$bg-color-overlay: #FFFFFF;
+
+$border-color: #E8EAED;
+$border-light-color: #F3F4F6;
+
+// 字体配置
+$font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+$font-size-extra-large: 24px;
+$font-size-large: 20px;
+$font-size-medium: 16px;
+$font-size-base: 14px;
+$font-size-small: 12px;
+
+// 圆角配置
+$radius-sm: 4px;
+$radius-base: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-circle: 50%;
+
+// 阴影配置
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+$shadow-base: 0 1px 3px rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+// 间距配置
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// 高度配置
+$height-base: 36px;
+$height-large: 44px;
+$height-small: 28px;
+
+// CSS变量定义（通过 :root 定义全局变量）
+:root {
+  --el-color-primary: #{$primary-color};
+  --el-color-success: #{$success-color};
+  --el-color-warning: #{$warning-color};
+  --el-color-danger: #{$danger-color};
+  --el-color-info: #{$info-color};
+  
+  --el-text-color-primary: #{$text-primary-color};
+  --el-text-color-regular: #{$text-regular-color};
+  --el-text-color-secondary: #{$text-secondary-color};
+  --el-text-color-placeholder: #{$text-placeholder-color};
+  
+  --el-bg-color: #{$bg-color};
+  --el-bg-color-page: #{$bg-color-page};
+  --el-bg-color-overlay: #{$bg-color-overlay};
+  
+  --el-border-color: #{$border-color};
+  --el-border-color-light: #{$border-light-color};
+  
+  --el-font-family: #{$font-family};
+  --el-font-size-extra-large: #{$font-size-extra-large};
+  --el-font-size-large: #{$font-size-large};
+  --el-font-size-medium: #{$font-size-medium};
+  --el-font-size-base: #{$font-size-base};
+  --el-font-size-small: #{$font-size-small};
+  
+  --el-border-radius-sm: #{$radius-sm};
+  --el-border-radius-base: #{$radius-base};
+  --el-border-radius-md: #{$radius-md};
+  --el-border-radius-lg: #{$radius-lg};
+  
+  --el-shadow-sm: #{$shadow-sm};
+  --el-shadow-base: #{$shadow-base};
+  --el-shadow-md: #{$shadow-md};
+  --el-shadow-lg: #{$shadow-lg};
+  
+  --el-spacing-xs: #{$spacing-xs};
+  --el-spacing-sm: #{$spacing-sm};
+  --el-spacing-md: #{$spacing-md};
+  --el-spacing-lg: #{$spacing-lg};
+}
+
+// 自定义组件样式覆盖
+.el-button--primary {
+  &:hover {
+    background-color: $primary-light-1;
+    border-color: $primary-light-1;
+  }
+  
+  &:active {
+    background-color: $primary-dark-1;
+    border-color: $primary-dark-1;
+  }
+}
+
+.el-button--danger {
+  background-color: $danger-color;
+  border-color: $danger-color;
+  
+  &:hover {
+    background-color: color.adjust($danger-color, $lightness: -10%);
+    border-color: color.adjust($danger-color, $lightness: -10%);
+  }
+}
+
+.el-card {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-base;
+}
+
+.el-table {
+  --el-table-header-text-color: $text-regular-color;
+  --el-table-row-hover-bg-color: #F0FDF4;
+  
+  .el-table__header {
+    background-color: $bg-color;
+    
+    th {
+      font-size: $font-size-small;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+  }
+  
+  .el-table__body {
+    tr:nth-child(even) {
+      background-color: #FAFBFC;
+    }
+  }
+}
+
+.el-input__wrapper {
+  border-radius: $radius-base;
+  
+  &:focus-within {
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+  }
+}
+
+.el-select {
+  .el-input__wrapper {
+    border-radius: $radius-base;
+  }
+}
+
+.el-switch {
+  --el-switch-on-color: $primary-color;
+  --el-switch-off-color: $border-color;
+  border-radius: 10px;
+}
+
+.el-tag {
+  border-radius: $radius-sm;
+  
+  &.el-tag--success {
+    background-color: $success-light;
+    color: $success-color;
+    border-color: transparent;
+  }
+  
+  &.el-tag--warning {
+    background-color: $warning-light;
+    color: $warning-color;
+    border-color: transparent;
+  }
+  
+  &.el-tag--danger {
+    background-color: $danger-light;
+    color: $danger-color;
+    border-color: transparent;
+  }
+}
+
+.el-pagination {
+  .el-pager li {
+    border-radius: $radius-sm;
+  }
+  
+  .el-pager li.is-active {
+    background-color: $primary-color;
+    color: #FFFFFF;
+  }
+}
+
+.el-dialog {
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+}
+
+.el-dropdown-menu {
+  border-radius: $radius-md;
+  box-shadow: $shadow-md;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: $border-light-color;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $text-secondary-color;
+  border-radius: 3px;
+  
+  &:hover {
+    background: $text-regular-color;
+  }
+}

@@ -1,0 +1,140 @@
+/**
+ * 智慧体育评测教学系统 - 设计Token变量
+ * 所有设计相关的颜色、间距、字体等统一在此定义
+ */
+
+:root {
+  /* ============ 品牌色彩 ============ */
+  --brand-primary: #1E5AA8;
+  --brand-primary-hover: #236B3A;
+  --brand-secondary: #F5A623;
+  --brand-accent: #E85D4E;
+  
+  /* ============ 中性色 ============ */
+  --bg-gray: #F7F8FA;
+  --card-white: #FFFFFF;
+  --border-light: #E8EAED;
+  --text-primary: #1A1A2E;
+  --text-secondary: #6B7280;
+  --text-weak: #9CA3AF;
+  
+  /* ============ 数据语义色 ============ */
+  --color-excellent: #1E5AA8;
+  --color-good: #3B82F6;
+  --color-pass: #F5A623;
+  --color-fail: #E85D4E;
+  --color-pending: #9CA3AF;
+  
+  /* ============ 状态色 ============ */
+  --success-color: #166534;
+  --success-bg: #DCFCE7;
+  --warning-color: #92400E;
+  --warning-bg: #FEF3C7;
+  --danger-color: #991B1B;
+  --danger-bg: #FEE2E2;
+  --info-color: #1E40AF;
+  --info-bg: #DBEAFE;
+  
+  /* ============ 字体系统 ============ */
+  --font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+  
+  /* 标题字号 */
+  --font-h1: 24px;
+  --font-h2: 20px;
+  --font-h3: 16px;
+  
+  /* 正文字号 */
+  --font-body: 14px;
+  --font-caption: 12px;
+  
+  /* 数据展示字号 */
+  --font-large-number: 36px;
+  --font-medium-number: 24px;
+  --font-score-number: 48px;
+  
+  /* 字重 */
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* 行高 */
+  --line-height-h1: 32px;
+  --line-height-h2: 28px;
+  --line-height-h3: 24px;
+  --line-height-body: 22px;
+  --line-height-caption: 18px;
+  
+  /* ============ 圆角系统 ============ */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-input: 6px;
+  --radius-tag: 4px;
+  --radius-avatar: 50%;
+  
+  /* ============ 阴影系统 ============ */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-dropdown: 0 2px 8px rgba(0, 0, 0, 0.08);
+  
+  /* ============ 间距系统（8px基准） ============ */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  
+  /* 页面边距 */
+  --page-padding-pc: 24px;
+  --page-padding-mobile: 16px;
+  
+  /* 卡片内边距 */
+  --card-padding: 20px;
+  
+  /* 列表项高度 */
+  --list-item-height: 48px;
+  
+  /* 按钮高度 */
+  --button-height: 36px;
+  --button-height-large: 44px;
+  
+  /* ============ 导航系统 ============ */
+  --sidebar-width: 220px;
+  --sidebar-width-collapsed: 64px;
+  --mobile-tab-height: 56px;
+  
+  /* ============ 过渡动画 ============ */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.35s ease;
+  
+  /* ============ Z-index层级 ============ */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-loading: 400;
+  --z-toast: 500;
+}
+
+/* ============ 媒体查询断点 ============ */
+@media (max-width: 991px) {
+  :root {
+    --font-h1: 20px;
+    --font-h2: 18px;
+    --font-h3: 15px;
+    --font-body: 13px;
+    --font-large-number: 28px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --font-h1: 18px;
+    --font-h2: 16px;
+    --font-h3: 14px;
+    --font-body: 12px;
+    --font-large-number: 24px;
+    --radius-card: 8px;
+  }
+}

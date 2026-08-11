@@ -1,0 +1,173 @@
+/**
+ * 响应式断点样式
+ */
+
+/* 移动端断点 (< 768px) */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .show-mobile {
+    display: block !important;
+  }
+  
+  .container {
+    padding: 0 16px;
+  }
+  
+  .text-center-mobile {
+    text-align: center;
+  }
+  
+  .flex-col-mobile {
+    flex-direction: column;
+  }
+  
+  .w-full-mobile {
+    width: 100%;
+  }
+}
+
+/* 平板断点 (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .hide-tablet {
+    display: none !important;
+  }
+  
+  .show-tablet {
+    display: block !important;
+  }
+  
+  .container {
+    padding: 0 20px;
+  }
+}
+
+/* 桌面端断点 (992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .hide-desktop {
+    display: none !important;
+  }
+  
+  .show-desktop {
+    display: block !important;
+  }
+  
+  .container {
+    padding: 0 24px;
+  }
+}
+
+/* 大屏幕断点 (>= 1200px) */
+@media (min-width: 1200px) {
+  .hide-large {
+    display: none !important;
+  }
+  
+  .show-large {
+    display: block !important;
+  }
+  
+  .container {
+    padding: 0 32px;
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+}
+
+/* 通用响应式规则 */
+@media (max-width: 991px) {
+  .hide-sm {
+    display: none !important;
+  }
+  
+  .show-sm {
+    display: block !important;
+  }
+  
+  .flex-col-sm {
+    flex-direction: column;
+  }
+  
+  .gap-sm-2 {
+    gap: 8px;
+  }
+  
+  .gap-sm-4 {
+    gap: 16px;
+  }
+}
+
+@media (min-width: 992px) {
+  .hide-lg {
+    display: none !important;
+  }
+  
+  .show-lg {
+    display: block !important;
+  }
+  
+  .flex-row-lg {
+    flex-direction: row;
+  }
+  
+  .gap-lg-4 {
+    gap: 16px;
+  }
+  
+  .gap-lg-6 {
+    gap: 24px;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) {
+  .hover\:bg-gray-100:hover {
+    background-color: transparent;
+  }
+  
+  .click-effect:active {
+    transform: scale(0.98);
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .high-contrast {
+    border-color: #000000;
+    color: #000000;
+  }
+}
+
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .dark\:bg-gray-800 {
+    background-color: #1F2937;
+  }
+  
+  .dark\:text-white {
+    color: #FFFFFF;
+  }
+  
+  .dark\:border-gray-700 {
+    border-color: #374151;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .hide-print {
+    display: none !important;
+  }
+  
+  .print-friendly {
+    background: white;
+    color: black;
+    box-shadow: none;
+  }
+  
+  @page {
+    margin: 1cm;
+  }
+}
