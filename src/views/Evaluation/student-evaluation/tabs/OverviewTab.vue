@@ -223,9 +223,9 @@ const evalContext = inject('evalContext')
 
 const schoolId = computed(() => store.state.school.id || 'hailin-second-primary')
 
-const currentStudentStats = computed(() => evalContext?.currentStudentStats?.value || { totalScore: 0, evaluationCount: 0, level: '暂无数据', improveRate: 0 })
-const currentStudentFiveEduScores = computed(() => evalContext?.currentStudentFiveEduScores?.value || { moral: 78, intellectual: 76, physical: 75, aesthetic: 74, labor: 77 })
-const aiAnalysisData = computed(() => evalContext?.aiAnalysisData?.value || {
+const currentStudentStats = computed(() => evalContext?.currentStudentStats || { totalScore: 0, evaluationCount: 0, level: '暂无数据', improveRate: 0 })
+const currentStudentFiveEduScores = computed(() => evalContext?.currentStudentFiveEduScores || { moral: 78, intellectual: 76, physical: 75, aesthetic: 74, labor: 77 })
+const aiAnalysisData = computed(() => evalContext?.aiAnalysisData || {
   entropy: { consistency: 0.89, dispersion: 0.72, correction: 0.95 },
   sentiment: { score: 75, tendency: '中性' },
   keywords: {
@@ -233,9 +233,9 @@ const aiAnalysisData = computed(() => evalContext?.aiAnalysisData?.value || {
     negative: ['需加强练习', '有待提高']
   }
 })
-const allStudents = computed(() => evalContext?.allStudents?.value || [])
-const selectedStudent = computed(() => evalContext?.selectedStudent?.value || '')
-const evaluationRecords = computed(() => evalContext?.evaluationRecords?.value || [])
+const allStudents = computed(() => evalContext?.allStudents || [])
+const selectedStudent = computed(() => evalContext?.selectedStudent || '')
+const evaluationRecords = computed(() => evalContext?.evaluationRecords || [])
 
 const showAHPConfig = ref(false)
 

@@ -9,27 +9,26 @@
         <el-option label="三年级1班" value="3-1" />
         <el-option label="四年级1班" value="4-1" />
         <el-option label="五年级1班" value="5-1" />
-        
       </el-select>
     </div>
     <div class="stats-row">
       <div class="stat-item">
-        <span class="stat-num" style="color: #1E5AA8">{{ evalContext.focusSummaryStats.avgRate }}%</span>
+        <span class="stat-num" style="color: #1E5AA8">{{ safeFocusStats.avgRate }}%</span>
         <span class="stat-label">平均专注力</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <span class="stat-num" style="color: #1E5AA8">{{ evalContext.focusSummaryStats.avgDuration }}分钟</span>
+        <span class="stat-num" style="color: #1E5AA8">{{ safeFocusStats.avgDuration }}分钟</span>
         <span class="stat-label">专注时长</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <span class="stat-num" style="color: #E85D4E">{{ evalContext.focusSummaryStats.totalDistractions }}次</span>
+        <span class="stat-num" style="color: #E85D4E">{{ safeFocusStats.totalDistractions }}次</span>
         <span class="stat-label">分散次数</span>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <span class="stat-num" style="color: #1E5AA8">{{ evalContext.focusSummaryStats.level }}</span>
+        <span class="stat-num" style="color: #1E5AA8">{{ safeFocusStats.level }}</span>
         <span class="stat-label">参与度</span>
       </div>
     </div>
@@ -67,14 +66,14 @@
           <div class="heatmap-body">
             <!-- 学生标签列 -->
             <div class="student-labels">
-              <span v-for="(row, idx) in evalContext.filteredHeatmapData" :key="idx">{{ row[0]?.student || `学生${idx + 1}` }}</span>
+              <span v-for="(row, idx) in safeHeatmapData" :key="idx">{{ row?.[0]?.student || `学生${idx + 1}` }}</span>
             </div>
             
             <!-- 热力图网格 -->
             <div class="heatmap-grid">
-              <div class="heatmap-row" v-for="(row, rowIdx) in evalContext.filteredHeatmapData" :key="rowIdx">
+              <div class="heatmap-row" v-for="(row, rowIdx) in safeHeatmapData" :key="rowIdx">
                 <div 
-                  v-for="(cell, colIdx) in row" 
+                  v-for="(cell, colIdx) in (row || [])" 
                   :key="colIdx"
                   class="heatmap-cell"
                   :style="{ background: evalContext.getHeatmapColor(cell.value) }"
@@ -97,7 +96,7 @@
           <el-button text :icon="Refresh" @click="evalContext.refreshFocusData">刷新</el-button>
         </div>
       </div>
-      <el-table :data="evalContext.filteredFocusRecords" stripe class="w-full" :height="300">
+      <el-table :data="safeFocusRecords" stripe class="w-full" :height="300">
         <el-table-column prop="studentName" label="学生姓名" width="100" />
         <el-table-column prop="class" label="班级" width="100" />
         <el-table-column prop="focusRate" label="专注力" width="180">
@@ -114,10 +113,14 @@
 </template>
 
 <script setup>
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 
 const evalContext = inject('evalContext')
+
+const safeHeatmapData = computed(() => evalContext.filteredHeatmapData || [])
+const safeFocusRecords = computed(() => evalContext.filteredFocusRecords || [])
+const safeFocusStats = computed(() => evalContext.focusSummaryStats || { avgRate: 0, avgDuration: 0, totalDistractions: 0, level: '-' })
 </script>
 
 <style scoped>

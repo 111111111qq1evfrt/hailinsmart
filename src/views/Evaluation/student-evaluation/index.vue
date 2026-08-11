@@ -2674,7 +2674,7 @@ const handleChartResize = () => {
   if (lstmChartInstance) lstmChartInstance.resize()
 }
 
-provide('evalContext', {
+provide('evalContext', reactive({
   loading,
   apiStudents,
   searchQuery,
@@ -2831,7 +2831,7 @@ provide('evalContext', {
   initScoreChart,
   initLstmChart,
   handleChartResize
-})
+}))
 </script>
 
 <style scoped>
