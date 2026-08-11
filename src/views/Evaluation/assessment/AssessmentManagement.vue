@@ -20,7 +20,7 @@
 <script setup>
 import { ref, computed, markRaw, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import StudentEvaluation from './StudentEvaluation.vue'
+import StudentEvaluation from '../student-evaluation/index.vue'
 import VoteAnalysis from './VoteAnalysis.vue'
 import HomeworkPublish from './HomeworkPublish.vue'
 import AiReview from '../ai/AiReview.vue'
