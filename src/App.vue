@@ -618,7 +618,6 @@ const menuConfig = {
     { path: '/data/visualization', label: '可视化大屏', icon: markRaw(Monitor) }
   ]
 }
-
 const visibleNavModules = computed(() => {
   const role = currentRole.value
   const permissions = rolePermissions[role] || rolePermissions.school

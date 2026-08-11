@@ -1,4 +1,4 @@
-import { getDefaultUsersForSchool } from './schoolUsers'
+import { getDefaultUsersForSchool } from './school-data/schoolUsers'
 
 const schoolAbbreviationMap = {
   'hailin-second-primary': 'HL',

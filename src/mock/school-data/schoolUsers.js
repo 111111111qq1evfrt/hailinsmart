@@ -1,4 +1,4 @@
-import { mockDB } from './index'
+import { mockDB } from '../index'
 
 const toUsername = (name) => {
   const map = {

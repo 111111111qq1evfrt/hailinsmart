@@ -1,1 +1,0 @@
-import{a3 as e,bz as t,cl as a}from"./index-EQ-w1KWe.js";const l=({atEndEdge:l,atStartEdge:o,layout:s},n)=>{let d,r=0;const u=e=>e<0&&o.value||e>0&&l.value;return{hasReachedEdge:u,onWheel:l=>{e(d);let{deltaX:o,deltaY:c}=l;l.shiftKey&&0!==c&&(o=c,c=0);const h="horizontal"===s.value?o:c;u(h)||(r+=h,t()||0===h||l.preventDefault(),d=a(()=>{n(r),r=0}))}}};export{l as u};
