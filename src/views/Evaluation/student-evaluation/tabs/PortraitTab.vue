@@ -128,7 +128,8 @@ const handleChartResize = () => {
   if (portraitRadarChartInstance.value) portraitRadarChartInstance.value.resize()
 }
 
-watch(selectedStudent, () => {
+watch(() => selectedStudent, (newVal) => {
+  if (!newVal) return
   nextTick(() => {
     setTimeout(() => {
       initPortraitRadarChart()

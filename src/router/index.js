@@ -192,7 +192,7 @@ const dataRoutes = [
     path: '/data/visualization',
     name: 'DataVisualization',
     component: createLazyComponent(() => import('../views/data-platform/visualization/VisualizationScreen.vue')),
-    meta: { title: '智慧体育 - 数据可视化大屏', layout: 'fullscreen', module: 'data' }
+    meta: { title: '智慧体育 - 领导驾驶舱', layout: 'fullscreen', module: 'data' }
   }
 ]
 

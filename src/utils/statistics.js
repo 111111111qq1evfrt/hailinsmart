@@ -81,7 +81,8 @@ export function calculateSchoolStats(students, testResults, examResults, schoolP
   
   const classStats = {}
   students.forEach(s => {
-    const className = (s.grade || '') + (s.class || '')
+    let className = s.className || (s.grade || '') + (s.class || '')
+    if (!className) return
     if (!classStats[className]) {
       classStats[className] = {
         count: 0,
@@ -140,7 +141,8 @@ export function calculateClassRanking(students, testResults, schoolProfile) {
   
   const classMap = {}
   students.forEach(s => {
-    const className = (s.grade || '') + (s.class || '')
+    let className = s.className || (s.grade || '') + (s.class || '')
+    if (!className) return
     if (!classMap[className]) {
       classMap[className] = {
         className,
@@ -256,7 +258,8 @@ export function calculateActivityData(students, schoolProfile) {
   const classMap = {}
 
   students.forEach(s => {
-    const className = (s.grade || '') + (s.class || '')
+    let className = s.className || (s.grade || '') + (s.class || '')
+    if (!className) return
     if (!classMap[className]) {
       classMap[className] = {
         className,

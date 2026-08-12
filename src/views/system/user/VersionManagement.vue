@@ -270,7 +270,7 @@ const getDefaultVersions = () => ({
       releaseDate: '2026-07-15',
       buildDate: '2026-07-14',
       changelog: [
-        { type: 'feature', text: '新增家长通知门户功能' },
+        { type: 'feature', text: '新增功能' },
         { type: 'optimize', text: '优化健康监测看板' },
         { type: 'feature', text: '新增设备定时任务' },
         { type: 'fix', text: '修复多处已知问题' }
@@ -302,7 +302,7 @@ const getDefaultVersions = () => ({
       releaseDate: '2026-07-15',
       buildDate: '2026-07-14',
       changelog: [
-        { type: 'feature', text: '新增家长通知门户功能' },
+        { type: 'feature', text: '新增功能' },
         { type: 'optimize', text: '优化健康监测看板' }
       ],
       size: '32.1MB',
@@ -319,7 +319,7 @@ const getDefaultVersions = () => ({
       releaseDate: '2026-07-15',
       buildDate: '2026-07-14',
       changelog: [
-        { type: 'feature', text: '新增家长通知门户' },
+        { type: 'feature', text: '新增功能' },
         { type: 'optimize', text: '优化健康监测' }
       ],
       size: '32.1MB',

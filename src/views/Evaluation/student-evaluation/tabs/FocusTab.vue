@@ -9,6 +9,7 @@
         <el-option label="三年级1班" value="3-1" />
         <el-option label="四年级1班" value="4-1" />
         <el-option label="五年级1班" value="5-1" />
+
       </el-select>
     </div>
     <div class="stats-row">

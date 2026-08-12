@@ -150,23 +150,45 @@ export function hasRealTeachers(schoolId) {
 export function normalizeStudents(students) {
   if (!Array.isArray(students)) return []
   
-  return students.map(s => ({
-    id: s.id || s.student_id || s.studentNumber || '',
-    name: s.name || '',
-    gender: s.gender || '',
-    grade: s.grade || '',
-    class: s.class || '',
-    className: s.className || (s.grade && s.class ? `${s.grade}${s.class}` : ''),
-    age: s.age || 0,
-    faceRegistered: s.faceRegistered || false,
-    sportsInterest: s.sportsInterest || '',
-    itemClass: s.itemClass || '',
-    studentNumber: s.studentNumber || s.id || s.student_id || '',
-    cimgUrl: s.cimgUrl || '',
-    phone: s.phone || '',
-    idCard: s.idCard || '',
-    parentName: s.parentName || '',
-    parentPhone: s.parentPhone || '',
-    status: s.status || '正常'
-  }))
+  return students.map(s => {
+    // 从 className 解析 grade 和 class（如果缺失）
+    let grade = s.grade || ''
+    let cls = s.class || ''
+    
+    if (!grade || !cls) {
+      const source = s.className || s.class_name || ''
+      if (source) {
+        if (!grade) {
+          const gradeMatch = source.match(/([一二三四五六七八九十]+年级)/)
+          grade = gradeMatch ? gradeMatch[1] : ''
+        }
+        if (!cls) {
+          const classMatch = source.match(/(\d+)班$/)
+          cls = classMatch ? classMatch[0] : ''
+        }
+      }
+    }
+    
+    const className = s.className || (grade && cls ? `${grade}${cls}` : '')
+    
+    return {
+      id: s.id || s.student_id || s.studentNumber || '',
+      name: s.name || '',
+      gender: s.gender || '',
+      grade,
+      class: cls,
+      className,
+      age: s.age || 0,
+      faceRegistered: s.faceRegistered || false,
+      sportsInterest: s.sportsInterest || '',
+      itemClass: s.itemClass || '',
+      studentNumber: s.studentNumber || s.id || s.student_id || '',
+      cimgUrl: s.cimgUrl || '',
+      phone: s.phone || '',
+      idCard: s.idCard || '',
+      parentName: s.parentName || '',
+      parentPhone: s.parentPhone || '',
+      status: s.status || '正常'
+    }
+  })
 }

@@ -435,14 +435,29 @@ const schoolProfile = computed(() => getSchoolProfile(schoolId.value))
 const getStudents = () => {
   const key = `students_${schoolId.value}`
   const stored = sessionStorage.getItem(key)
+  const validGrades = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级']
+  
   if (stored) {
     try {
-      return JSON.parse(stored)
-    } catch {
-      return []
-    }
+      const data = JSON.parse(stored)
+      if (Array.isArray(data) && data.length > 0) {
+        // 检查数据中是否包含非小学年级（七年级及以上）
+        const hasInvalidGrade = data.some(s => {
+          const className = s.className || ''
+          const grade = s.grade || ''
+          const allGrades = className.match(/([一二三四五六七八九十]+年级)/g) || []
+          return allGrades.some(g => !validGrades.includes(g)) || 
+                 (grade && !validGrades.includes(grade))
+        })
+        if (!hasInvalidGrade) {
+          return data
+        }
+      }
+    } catch {}
   }
-  return []
+  // 回退到模拟数据
+  const schoolData = getSchoolMockData(schoolId.value)
+  return schoolData.students || []
 }
 
 const getTestResults = () => {
@@ -728,7 +743,19 @@ const classHourDetailDefault = computed(() => {
   if (students.value.length > 0) {
     const classMap = {}
     students.value.forEach(s => {
-      const className = (s.grade || '') + (s.class || '') + '班'
+      // 优先使用已有的 className 字段，确保格式为 "几年级几班"
+      let className = ''
+      if (s.className) {
+        className = s.className
+      } else if (s.grade || s.class) {
+        const grade = s.grade || ''
+        const cls = s.class || ''
+        const clsStr = cls.endsWith('班') ? cls : (cls ? cls + '班' : '')
+        className = `${grade}${clsStr}`
+      }
+      
+      if (!className) return
+      
       if (!classMap[className]) {
         classMap[className] = {
           className,
@@ -796,7 +823,8 @@ const classHourDetailDefault = computed(() => {
   return result
 })
 
-const classHourDetail = usePersistedRef(`smart_pe_student_data_class_hour_detail_${schoolId.value}`, [...classHourDetailDefault.value])
+// 增加版本号v2强制刷新旧的持久化数据，确保班级名称格式正确
+const classHourDetail = usePersistedRef(`smart_pe_student_data_class_hour_detail_v2_${schoolId.value}`, [...classHourDetailDefault.value])
 
 const filteredClassHourDetail = computed(() => {
   if (filterGrade.value === 'all') {

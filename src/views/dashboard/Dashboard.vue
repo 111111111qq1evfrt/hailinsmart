@@ -254,7 +254,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onActivated, nextTick, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -301,7 +301,6 @@ const mockPushData = computed(() => {
 })
 
 const loadPushData = async () => {
-  pushLoading.value = true
   try {
     const schoolId = store.state.school?.id || ''
     const res = await sportsApi.getList(schoolId, { limit: 500 })
@@ -317,8 +316,6 @@ const loadPushData = async () => {
     console.warn('推送服务不可用，使用本地Mock数据')
     pushData.value = mockPushData.value
     pushDataLoaded.value = false
-  } finally {
-    pushLoading.value = false
   }
 }
 
@@ -589,12 +586,12 @@ const kpiList = computed(() => {
 })
 
 const moduleList = [
-  { name: '学生管理', desc: '信息录入与班级管理', icon: 'User', path: '/student', bgColor: '#DCFCE7', iconColor: '#1E5AA8', badge: '学' },
+  { name: '学生管理', desc: '信息录入与班级管理', icon: 'User', path: '/system/students', bgColor: '#DCFCE7', iconColor: '#1E5AA8', badge: '学' },
   { name: '体育考试', desc: '考试管理与成绩分析', icon: 'Trophy', path: '/exam', bgColor: '#DBEAFE', iconColor: '#3B82F6', badge: '考' },
   { name: '国家体测', desc: '体测数据与上报', icon: 'School', path: '/national-test', bgColor: '#FEF3C7', iconColor: '#F5A623', badge: '体' },
   { name: '自由练习', desc: '自主练习与成绩记录', icon: 'Basketball', path: '/practice', bgColor: '#E0F2FE', iconColor: '#06B6D4', badge: '练' },
-  { name: '学生评价', desc: '多维度评价分析', icon: 'Star', path: '/evaluation', bgColor: '#F3E8FF', iconColor: '#8B5CF6', badge: '评' },
-  { name: '听评课', desc: '课堂评价与直播', icon: 'VideoCamera', path: '/lesson-review', bgColor: '#FCE7F3', iconColor: '#EC4899', badge: '课' },
+  { name: '学生评价', desc: '多维度评价分析', icon: 'Star', path: '/evaluation/assessment', bgColor: '#F3E8FF', iconColor: '#8B5CF6', badge: '评' },
+  { name: '听评课', desc: '课堂评价与直播', icon: 'VideoCamera', path: '/evaluation/teaching', bgColor: '#FCE7F3', iconColor: '#EC4899', badge: '课' },
   { name: '校领导面板', desc: '数据总览与决策', icon: 'DataLine', path: '/evaluation/leader', bgColor: '#FFEDD5', iconColor: '#F97316', badge: '领' }
 ]
 
@@ -644,7 +641,7 @@ const viewMore = (type) => {
 
 const initScoreChart = () => {
   if (!scoreChart.value) return
-  if (scoreChartInstance) { scoreChartInstance.dispose(); scoreChartInstance = null }
+ 
   scoreChartInstance = echarts.init(scoreChart.value)
   scoreChartInstance.showLoading()
   const stats = dynamicStats.value
@@ -734,40 +731,88 @@ const initTestChart = () => {
   testChartInstance.hideLoading()
 }
 
-onMounted(() => {
-  // 非阻塞加载学生数据：先立即显示页面，后台刷新并同步 sessionStorage
-  getStudentListV4({ page: 1, size: 2000 }, schoolId.value)
-    .then(result => {
-      const apiStudents = result?.list || []
+// 统一加载所有接口数据，共享 loading 蒙版
+const loadAllData = async () => {
+  pushLoading.value = true
+  try {
+    // 并行加载学生数据和推送数据
+    const [studentResult] = await Promise.allSettled([
+      getStudentListV4({ page: 1, size: 2000 }, schoolId.value),
+      loadPushData()
+    ])
+
+    // 处理学生数据
+    if (studentResult.status === 'fulfilled') {
+      const apiStudents = studentResult.value?.list || []
       if (apiStudents.length > 0) {
-        students.value = apiStudents.map(s => ({
-          id: s.student_id || s.id,
-          name: s.name,
-          studentId: s.student_id || s.student_no,
-          className: s.class_name || s.className,
-          gradeName: s.grade_name || s.gradeName,
-          gender: s.gender === 1 ? '男' : s.gender === 2 ? '女' : (s.gender || ''),
-          school: store.state.school?.name || '',
-          hasTestRecord: false
-        }))
+        students.value = apiStudents
+          .map(s => {
+            const rawClassName = s.class_name || s.className || ''
+            const rawGrade = s.grade_name || s.gradeName || s.grade || ''
+            
+            let grade = ''
+            let cls = ''
+            
+            if (rawClassName) {
+              const gradeMatch = rawClassName.match(/([一二三四五六七八九十]+年级)/)
+              const classMatch = rawClassName.match(/(\d+)班$/)
+              grade = gradeMatch ? gradeMatch[1] : ''
+              cls = classMatch ? classMatch[0] : ''
+            }
+            
+            if (!grade && rawGrade) {
+              const gradeMatch = rawGrade.match(/([一二三四五六七八九十]+年级)/)
+              grade = gradeMatch ? gradeMatch[1] : ''
+            }
+            
+            if (!cls && rawClassName) {
+              const classNumMatch = rawClassName.match(/(\d+)班$/)
+              cls = classNumMatch ? classNumMatch[0] : ''
+            }
+            
+            const finalClassName = grade && cls ? `${grade}${cls}` : (rawClassName || `${grade}${cls}`)
+            
+            return {
+              id: s.student_id || s.id,
+              name: s.name,
+              studentId: s.student_id || s.student_no,
+              grade,
+              class: cls,
+              className: finalClassName,
+              gradeName: grade || rawGrade,
+              gender: s.gender === 1 ? '男' : s.gender === 2 ? '女' : (s.gender || ''),
+              school: store.state.school?.name || '',
+              hasTestRecord: false,
+              age: s.age || 8,
+              sportsInterest: s.sports_interest || ''
+            }
+          })
+        
         sessionStorage.setItem(`students_${schoolId.value}`, JSON.stringify(students.value))
       }
-    })
-    .catch(e => {
-      console.warn('[主页] 学生API加载失败，使用本地数据:', e.message)
-    })
+    } else {
+      console.warn('[主页] 学生API加载失败，使用本地数据:', studentResult.reason?.message)
+    }
 
-  // 加载运动推送数据（同样非阻塞）
-  loadPushData()
-    .then(() => {
-      scoreChartInstance?.showLoading()
-      testChartInstance?.showLoading()
-      nextTick(() => {
-        setTimeout(() => { initScoreChart(); initTestChart() }, 200)
-      })
+    // 初始化图表
+    scoreChartInstance?.showLoading()
+    testChartInstance?.showLoading()
+    nextTick(() => {
+      setTimeout(() => { initScoreChart(); initTestChart() }, 200)
     })
+  } finally {
+    pushLoading.value = false
+  }
+}
 
+onMounted(() => {
+  loadAllData()
   window.addEventListener('resize', handleChartResize)
+})
+
+// keep-alive 重新激活时刷新数据
+onActivated(() => {
+  loadAllData()
 })
 
 onBeforeUnmount(() => {

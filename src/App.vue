@@ -291,8 +291,8 @@
       </template>
     </el-dialog>
 
-    <!-- AI 助手组件 - 已暂时关闭 -->
-    <!-- <AiAssistant /> -->
+    <!-- AI 助手组件 -->
+    <AiAssistant />
   </div>
 </template>
 
@@ -309,7 +309,7 @@ import {
   Calendar, FirstAidKit, Lock, Link, VideoPlay, More, School, DataAnalysis,
   Monitor, Promotion, Service, Connection, Tools
 } from '@element-plus/icons-vue'
-// import AiAssistant from '@/components/common/AiAssistant.vue'
+import AiAssistant from '@/components/common/AiAssistant.vue'
 import store from '@/store/global'
 import { generateDefaultPassword } from '@/mock/passwordUtils'
 import { useNotifications } from '@/composables/useNotifications'
@@ -615,7 +615,7 @@ const menuConfig = {
     { path: '/data/analysis', label: '数据分析中心', icon: markRaw(DataAnalysis) },
     { path: '/data/health', label: '健康监测看板', icon: markRaw(FirstAidKit) },
     { path: '/data/maintenance', label: '维修数据分析', icon: markRaw(Tools) },
-    { path: '/data/visualization', label: '可视化大屏', icon: markRaw(Monitor) }
+    { path: '/data/visualization', label: '领导驾驶舱', icon: markRaw(Monitor) }
   ]
 }
 const visibleNavModules = computed(() => {
