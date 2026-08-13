@@ -4,9 +4,10 @@
     <!-- 机器人图标 - 支持拖动 -->
     <div
       class="ai-icon"
-      :class="{ 'dragging': isDragging, 'bounce': isBouncing, 'wiggle': isWiggling }"
+      :class="{ 'dragging': isDragging, 'bounce': isBouncing, 'wiggle': isWiggling, 'walking': walkState.walking }"
       @mousedown="startDrag"
       @click="handleClick"
+      @dblclick="handleDoubleClick"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
@@ -17,11 +18,25 @@
         class="robot-img"
       />
 
+      <!-- 走动状态指示器 -->
+      <div v-if="walkState.walking" class="walk-indicator" title="双击停止走动">
+        <span class="walk-dot"></span>
+      </div>
+
       <!-- 悬浮提示 -->
       <transition name="tooltip">
         <div v-if="showTooltip" class="tooltip">
-          <div class="tooltip-title">你好，我的AI智能体育助手 👋</div>
+          <div class="tooltip-title">你好，我是AI智能体育助手 👋</div>
           <div class="tooltip-desc">{{ currentPageIntro }}</div>
+          <div class="tooltip-arrow"></div>
+        </div>
+      </transition>
+
+      <!-- 双击提示气泡（首次显示） -->
+      <transition name="tooltip">
+        <div v-if="showDoubleClickHint" class="tooltip dblclick-hint">
+          <div class="tooltip-title">💡 双击让我走动</div>
+          <div class="tooltip-desc">双击图标可以让我走起来，再次双击停止</div>
           <div class="tooltip-arrow"></div>
         </div>
       </transition>
@@ -138,6 +153,7 @@ const isDragging = ref(false)
 const isBouncing = ref(false)
 const isWiggling = ref(false)
 const showTooltip = ref(false)
+const showDoubleClickHint = ref(false)
 const messageListRef = ref(null)
 const clickTimeoutRef = ref(null)
 const bounceTimer = ref(null)
@@ -464,14 +480,24 @@ onMounted(() => {
     }
   }
 
-  // 启动走动
+  // 初始化图片朝向（默认静止，不走动）
   nextTick(() => {
-    // 初始化图片朝向
     if (robotImgRef.value) {
       gsap.set(robotImgRef.value, { scaleX: walkState.facing })
     }
-    startWalking()
   })
+
+  // 显示双击提示（首次使用时）
+  const hintShown = sessionStorage.getItem('ai-assistant-dblclick-hint-shown')
+  if (!hintShown) {
+    setTimeout(() => {
+      showDoubleClickHint.value = true
+      setTimeout(() => {
+        showDoubleClickHint.value = false
+        sessionStorage.setItem('ai-assistant-dblclick-hint-shown', '1')
+      }, 5000)
+    }, 3000)
+  }
 })
 
 onBeforeUnmount(() => {
@@ -577,9 +603,14 @@ const stopDrag = () => {
   document.removeEventListener('mousemove', onDrag)
   document.removeEventListener('mouseup', stopDrag)
 
-  // 恢复走动
-  startWalking()
+  // 如果之前在走动，松开后恢复走动；否则保持静止
+  if (walkState.walking) {
+    startWalking()
+  }
 }
+
+// 双击标记：双击时阻止 click 事件打开聊天
+let dblclickTriggered = false
 
 const handleClick = () => {
   if (dragState.hasMoved) {
@@ -590,12 +621,40 @@ const handleClick = () => {
     longPressTriggered = false
     return
   }
+  // 清除之前可能残留的 timeout
+  if (clickTimeoutRef.value) {
+    clearTimeout(clickTimeoutRef.value)
+    clickTimeoutRef.value = null
+  }
   clickTimeoutRef.value = setTimeout(() => {
-    if (!dragState.hasMoved) {
+    // 如果是双击触发的 click，跳过 toggleChat
+    if (!dblclickTriggered && !dragState.hasMoved) {
       toggleChat()
     }
+    dblclickTriggered = false
     dragState.hasMoved = false
-  }, 100)
+  }, 280)
+}
+
+// 双击切换走动状态
+const handleDoubleClick = () => {
+  // 标记双击，阻止 click 事件执行
+  dblclickTriggered = true
+  // 立即清除待执行的点击
+  if (clickTimeoutRef.value) {
+    clearTimeout(clickTimeoutRef.value)
+    clickTimeoutRef.value = null
+  }
+  
+  showDoubleClickHint.value = false
+  
+  if (walkState.walking) {
+    stopWalking()
+    ElMessage.info('已停止走动，双击可以让我再次走起来', 2000)
+  } else {
+    startWalking()
+    ElMessage.success('开始走动～双击可以让我停止', 2000)
+  }
 }
 
 const toggleChat = () => {
@@ -719,8 +778,8 @@ const getCurrentTime = () => {
 }
 
 .ai-icon {
-  width: 64px;
-  height: 64px;
+  width: 100px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -842,6 +901,58 @@ const getCurrentTime = () => {
 .tooltip-leave-to {
   opacity: 0;
   transform: translateX(-50%) translateY(8px);
+}
+
+/* 走动状态下的图标样式 */
+.ai-icon.walking {
+  animation: walkBob 0.6s ease-in-out infinite;
+}
+
+/* 走动指示器 - 小蓝点 */
+.walk-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background: #1E5AA8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(30, 90, 168, 0.5);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.walk-dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  animation: walkDotPulse 1s ease-in-out infinite;
+}
+
+@keyframes walkDotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+}
+
+/* 双击提示特殊样式 */
+.dblclick-hint {
+  background: linear-gradient(135deg, #FFF7E6 0%, #FFF 100%);
+  border-color: #FFD666;
+  animation: hintBounce 0.5s ease-out;
+}
+
+.dblclick-hint .tooltip-title {
+  color: #F5A623;
+}
+
+@keyframes hintBounce {
+  0% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+  50% { transform: translateX(-50%) scale(1.05); }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
 }
 
 /* 思考指示器 */
