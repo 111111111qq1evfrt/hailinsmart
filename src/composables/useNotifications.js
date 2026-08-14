@@ -37,13 +37,27 @@ export function useNotifications() {
       return
     }
     const key = getStorageKey(username.value)
+    let personalList = []
     try {
       const raw = sessionStorage.getItem(key)
-      notifications.value = raw ? JSON.parse(raw) : []
+      personalList = raw ? JSON.parse(raw) : []
     } catch {
-      notifications.value = []
+      personalList = []
     }
-    unreadCount.value = notifications.value.filter(n => !n.read).length
+    // 合并广播通知（去重）
+    let broadcastList = []
+    try {
+      const broadcastRaw = sessionStorage.getItem(getAllNotificationsKey())
+      broadcastList = broadcastRaw ? JSON.parse(broadcastRaw) : []
+    } catch {
+      broadcastList = []
+    }
+    const existingIds = new Set(personalList.map(n => n.id))
+    const merged = [...personalList, ...broadcastList.filter(n => !existingIds.has(n.id))]
+    // 按时间倒序
+    merged.sort((a, b) => new Date(b.createTime || 0) - new Date(a.createTime || 0))
+    notifications.value = merged
+    unreadCount.value = merged.filter(n => !n.read).length
   }
 
   function saveNotifications(list) {
@@ -55,17 +69,52 @@ export function useNotifications() {
   }
 
   function markAsRead(id) {
-    const list = notifications.value.map(n =>
-      n.id === id ? { ...n, read: true, readTime: new Date().toISOString() } : n
-    )
-    saveNotifications(list)
+    // 先在个人通知中查找
+    const personalKey = getStorageKey(username.value)
+    let personalList = []
+    try {
+      personalList = JSON.parse(sessionStorage.getItem(personalKey) || '[]')
+    } catch { personalList = [] }
+    const inPersonal = personalList.find(n => n.id === id)
+    if (inPersonal) {
+      personalList = personalList.map(n =>
+        n.id === id ? { ...n, read: true, readTime: new Date().toISOString() } : n
+      )
+      sessionStorage.setItem(personalKey, JSON.stringify(personalList))
+    } else {
+      // 在广播通知中查找
+      const broadcastKey = getAllNotificationsKey()
+      let broadcastList = []
+      try {
+        broadcastList = JSON.parse(sessionStorage.getItem(broadcastKey) || '[]')
+      } catch { broadcastList = [] }
+      broadcastList = broadcastList.map(n =>
+        n.id === id ? { ...n, read: true, readTime: new Date().toISOString() } : n
+      )
+      sessionStorage.setItem(broadcastKey, JSON.stringify(broadcastList))
+    }
+    loadNotifications()
   }
 
   function markAllAsRead() {
-    const list = notifications.value.map(n =>
-      n.read ? n : { ...n, read: true, readTime: new Date().toISOString() }
-    )
-    saveNotifications(list)
+    const now = new Date().toISOString()
+    // 个人通知全部已读
+    const personalKey = getStorageKey(username.value)
+    let personalList = []
+    try {
+      personalList = JSON.parse(sessionStorage.getItem(personalKey) || '[]')
+    } catch { personalList = [] }
+    personalList = personalList.map(n => n.read ? n : { ...n, read: true, readTime: now })
+    sessionStorage.setItem(personalKey, JSON.stringify(personalList))
+    // 广播通知全部已读
+    const broadcastKey = getAllNotificationsKey()
+    let broadcastList = []
+    try {
+      broadcastList = JSON.parse(sessionStorage.getItem(broadcastKey) || '[]')
+    } catch { broadcastList = [] }
+    broadcastList = broadcastList.map(n => n.read ? n : { ...n, read: true, readTime: now })
+    sessionStorage.setItem(broadcastKey, JSON.stringify(broadcastList))
+    loadNotifications()
   }
 
   function deleteNotification(id) {
@@ -154,4 +203,39 @@ export function sendNotifications(notifications) {
     results.push(result)
   }
   return results
+}
+
+/**
+ * 发送广播通知（所有用户都能在铃铛中看到）
+ * @param {object} notification - 通知内容 { title, content, type, relatedStudents }
+ */
+export function sendBroadcastNotification(notification) {
+  const key = getAllNotificationsKey()
+
+  let list = []
+  try {
+    const raw = sessionStorage.getItem(key)
+    list = raw ? JSON.parse(raw) : []
+  } catch {
+    list = []
+  }
+
+  const newNotification = {
+    id: generateDeterministicId('broadcast', (notification.title || '新通知') + Date.now()),
+    title: notification.title || '新通知',
+    content: notification.content || '',
+    type: notification.type || 'general',
+    sender: store.state.user?.name || '系统',
+    senderRole: store.state.user?.role || 'school',
+    relatedStudents: notification.relatedStudents || [],
+    createTime: new Date().toISOString(),
+    read: false,
+    readTime: null,
+    isBroadcast: true
+  }
+
+  list.unshift(newNotification)
+  sessionStorage.setItem(key, JSON.stringify(list))
+
+  return newNotification
 }

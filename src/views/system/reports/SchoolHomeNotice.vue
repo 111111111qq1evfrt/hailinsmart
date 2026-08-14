@@ -142,18 +142,22 @@
           </div>
         </div>
         <div class="detail-meta">
-          <div class="meta-row"><span>接收对象：{{ currentNotice.recipient }}</span><span>确认方式：{{ getConfirmTypeText(currentNotice.confirmType) }}</span></div>
-          <div class="meta-row"><span>阅读人数：{{ currentNotice.readCount }}</span><span>定时发送：{{ currentNotice.scheduledTime || '立即发送' }}</span></div>
+          <div class="meta-row"><span>接收对象：{{ currentNotice.recipient || '—' }}</span><span>确认方式：{{ getConfirmTypeText(currentNotice.confirmType) }}</span></div>
+          <div class="meta-row"><span>阅读人数：{{ currentNotice.readCount || '0/0' }}</span><span>定时发送：{{ currentNotice.scheduledTime || '立即发送' }}</span></div>
+          <div v-if="currentNotice.sendType === 'individual'" class="meta-row"><span>个人推送目标：{{ currentNotice.targetUsers || '—' }}</span></div>
+          <div v-if="currentNotice.roles?.length" class="meta-row"><span>角色范围：{{ formatRoles(currentNotice.roles) }}</span></div>
+          <div v-if="currentNotice.grades?.length" class="meta-row"><span>年级范围：{{ formatGrades(currentNotice.grades) }}</span></div>
+          <div v-if="currentNotice.classes?.length" class="meta-row"><span>班级范围：{{ formatClasses(currentNotice.classes) }}</span></div>
         </div>
       </div>
       <template #footer><el-button @click="showDetail = false">关闭</el-button></template>
     </el-dialog>
 
     <!-- 新建通知弹窗 -->
-    <el-dialog v-model="showCreateNotice" title="新建通知" width="800px">
-      <el-form :model="createNoticeForm" label-width="100px">
-        <el-form-item label="通知标题"><el-input v-model="createNoticeForm.title" placeholder="请输入通知标题" /></el-form-item>
-        <el-form-item label="通知类型">
+    <el-dialog v-model="showCreateNotice" :title="editingId ? '编辑通知' : '新建通知'" width="800px" @closed="onDialogClosed">
+      <el-form ref="formRef" :model="createNoticeForm" :rules="formRules" label-width="100px">
+        <el-form-item label="通知标题" prop="title"><el-input v-model="createNoticeForm.title" placeholder="请输入通知标题" /></el-form-item>
+        <el-form-item label="通知类型" prop="type">
           <el-select v-model="createNoticeForm.type" placeholder="请选择通知类型" class="w-full">
             <el-option label="作业通知" value="homework" /><el-option label="活动通知" value="activity" />
             <el-option label="安全提醒" value="safety" /><el-option label="成绩通知" value="score" />
@@ -176,9 +180,12 @@
         </el-form-item>
         <el-form-item label="班级筛选" v-if="createNoticeForm.sendType === 'group'">
           <el-select v-model="createNoticeForm.classes" multiple placeholder="请选择班级" class="w-full">
-            <el-option label="四年级1班" value="class41" /><el-option label="四年级2班" value="class42" />
-            <el-option label="五年级1班" value="class51" /><el-option label="五年级2班" value="class52" />
-            <el-option label="六年级1班" value="class61" /><el-option label="六年级2班" value="class62" />
+            <el-option label="一年级1班" value="class11" /><el-option label="一年级2班" value="class12" /><el-option label="一年级3班" value="class13" />
+            <el-option label="二年级1班" value="class21" /><el-option label="二年级2班" value="class22" /><el-option label="二年级3班" value="class23" />
+            <el-option label="三年级1班" value="class31" /><el-option label="三年级2班" value="class32" /><el-option label="三年级3班" value="class33" />
+            <el-option label="四年级1班" value="class41" /><el-option label="四年级2班" value="class42" /><el-option label="四年级3班" value="class43" />
+            <el-option label="五年级1班" value="class51" /><el-option label="五年级2班" value="class52" /><el-option label="五年级3班" value="class53" />
+            <el-option label="六年级1班" value="class61" /><el-option label="六年级2班" value="class62" /><el-option label="六年级3班" value="class63" />
           </el-select>
         </el-form-item>
         <el-form-item label="个人推送" v-if="createNoticeForm.sendType === 'individual'">
@@ -194,7 +201,7 @@
         <el-form-item label="确认方式">
           <el-radio-group v-model="createNoticeForm.confirmType"><el-radio label="click">一键阅读</el-radio><el-radio label="button">按钮确认</el-radio><el-radio label="signature">手写签字</el-radio></el-radio-group>
         </el-form-item>
-        <el-form-item label="通知内容"><el-input v-model="createNoticeForm.content" type="textarea" :rows="6" placeholder="请输入通知内容" /></el-form-item>
+        <el-form-item label="通知内容" prop="content"><el-input v-model="createNoticeForm.content" type="textarea" :rows="6" placeholder="请输入通知内容" /></el-form-item>
         <el-form-item label="定时发送">
           <el-switch v-model="createNoticeForm.isScheduled" active-text="启用" inactive-text="关闭" />
           <el-date-picker v-if="createNoticeForm.isScheduled" v-model="createNoticeForm.scheduledTime" type="datetime" placeholder="选择发送时间" style="margin-left: 12px" />
@@ -210,7 +217,7 @@
       <template #footer>
         <el-button @click="showCreateNotice = false">取消</el-button>
         <el-button type="primary" @click="submitNotice">保存草稿</el-button>
-        <el-button type="success" @click="sendNewNotice">立即发送</el-button>
+        <el-button type="success" @click="sendNewNotice">{{ editingId ? '保存修改' : '立即发送' }}</el-button>
       </template>
     </el-dialog>
 
@@ -237,6 +244,7 @@ import echarts from '@/utils/echarts'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import store from '@/store/global'
 import { generateDeterministicId } from '@/utils/seededRandom'
+import { sendBroadcastNotification } from '@/composables/useNotifications'
 
 const schoolId = computed(() => store.state.school.id || 'hailin-second-primary')
 
@@ -276,8 +284,8 @@ const MOCK_DATA = {
   'hailin-second-primary': {
     notices: [
       {
-        id: 'HL2-TZ20260115001',
-        title: '关于开展2024年秋季运动会的通知',
+        id: 'HL2-TZ20250115001',
+        title: '关于开展2025年秋季运动会的通知',
         type: 'activity',
         priority: 'important',
         recipient: '全体家长',
@@ -292,11 +300,11 @@ const MOCK_DATA = {
         miniProgramLink: { name: '运动会报名', desc: '点击报名参加运动会' },
         readCount: '235/280',
         status: 'sent',
-        sendTime: '2024-11-10 09:00',
-        scheduledTime: '2024-11-10 09:00'
+        sendTime: '2025-11-10 09:00',
+        scheduledTime: '2025-11-10 09:00'
       },
       {
-        id: 'HL2-TZ20260115002',
+        id: 'HL2-TZ20250115002',
         title: '安全第一！上下学交通安全提醒',
         type: 'safety',
         priority: 'urgent',
@@ -305,10 +313,10 @@ const MOCK_DATA = {
         confirmType: 'click',
         readCount: '278/280',
         status: 'sent',
-        sendTime: '2024-11-09 16:30'
+        sendTime: '2025-11-09 16:30'
       },
       {
-        id: 'HL2-TZ20260114001',
+        id: 'HL2-TZ20250114001',
         title: '第11周数学作业布置',
         type: 'homework',
         priority: 'normal',
@@ -317,10 +325,10 @@ const MOCK_DATA = {
         confirmType: 'click',
         readCount: '76/90',
         status: 'sent',
-        sendTime: '2024-11-08 15:00'
+        sendTime: '2025-11-08 15:00'
       },
       {
-        id: 'HL2-TZ20260114002',
+        id: 'HL2-TZ20250114002',
         title: '期中成绩查询通知',
         type: 'score',
         priority: 'important',
@@ -329,10 +337,10 @@ const MOCK_DATA = {
         confirmType: 'signature',
         readCount: '168/190',
         status: 'sent',
-        sendTime: '2024-11-07 17:00'
+        sendTime: '2025-11-07 17:00'
       },
       {
-        id: 'HL2-TZ20260113001',
+        id: 'HL2-TZ20250113001',
         title: '家长会通知（待发送）',
         type: 'activity',
         priority: 'important',
@@ -342,7 +350,7 @@ const MOCK_DATA = {
         readCount: '0/280',
         status: 'pending',
         sendTime: '—',
-        scheduledTime: '2024-11-15 08:00'
+        scheduledTime: '2025-11-15 08:00'
       }
     ],
     stats: { totalSent: 256, readRate: 94, unconfirmed: 45, replied: 86, todayCount: 12 },
@@ -361,7 +369,7 @@ const MOCK_DATA = {
   'hailin-zirong-primary': {
     notices: [
       {
-        id: 'ZR-TZ20260115001',
+        id: 'ZR-TZ20250115001',
         title: '子荣小学科技节活动通知',
         type: 'activity',
         priority: 'important',
@@ -372,11 +380,11 @@ const MOCK_DATA = {
         images: [{ name: '科技节宣传海报.jpg' }],
         readCount: '185/220',
         status: 'sent',
-        sendTime: '2024-11-12 10:00',
-        scheduledTime: '2024-11-12 10:00'
+        sendTime: '2025-11-12 10:00',
+        scheduledTime: '2025-11-12 10:00'
       },
       {
-        id: 'ZR-TZ20260115002',
+        id: 'ZR-TZ20250115002',
         title: '冬季流感预防温馨提示',
         type: 'safety',
         priority: 'urgent',
@@ -385,10 +393,10 @@ const MOCK_DATA = {
         confirmType: 'click',
         readCount: '218/220',
         status: 'sent',
-        sendTime: '2024-11-11 14:30'
+        sendTime: '2025-11-11 14:30'
       },
       {
-        id: 'ZR-TZ20260114001',
+        id: 'ZR-TZ20250114001',
         title: '语文背诵作业布置',
         type: 'homework',
         priority: 'normal',
@@ -397,10 +405,10 @@ const MOCK_DATA = {
         confirmType: 'click',
         readCount: '45/55',
         status: 'sent',
-        sendTime: '2024-11-10 16:00'
+        sendTime: '2025-11-10 16:00'
       },
       {
-        id: 'ZR-TZ20260114002',
+        id: 'ZR-TZ20250114002',
         title: '体育测试成绩公示',
         type: 'score',
         priority: 'important',
@@ -409,10 +417,10 @@ const MOCK_DATA = {
         confirmType: 'signature',
         readCount: '48/55',
         status: 'sent',
-        sendTime: '2024-11-09 17:30'
+        sendTime: '2025-11-09 17:30'
       },
       {
-        id: 'ZR-TZ20260113001',
+        id: 'ZR-TZ20250113001',
         title: '消防安全演练通知',
         type: 'activity',
         priority: 'urgent',
@@ -422,7 +430,7 @@ const MOCK_DATA = {
         readCount: '0/220',
         status: 'pending',
         sendTime: '—',
-        scheduledTime: '2024-11-18 14:00'
+        scheduledTime: '2025-11-18 14:00'
       }
     ],
     stats: { totalSent: 186, readRate: 92, unconfirmed: 32, replied: 68, todayCount: 8 },
@@ -440,7 +448,7 @@ const MOCK_DATA = {
   'linhai-experimental-primary': {
     notices: [
       {
-        id: 'LH-TZ20260115001',
+        id: 'LH-TZ20250115001',
         title: '林海实验小学读书节活动',
         type: 'activity',
         priority: 'important',
@@ -451,11 +459,11 @@ const MOCK_DATA = {
         images: [{ name: '读书节海报.jpg' }],
         readCount: '245/260',
         status: 'sent',
-        sendTime: '2024-11-13 09:30',
-        scheduledTime: '2024-11-13 09:30'
+        sendTime: '2025-11-13 09:30',
+        scheduledTime: '2025-11-13 09:30'
       },
       {
-        id: 'LH-TZ20260115002',
+        id: 'LH-TZ20250115002',
         title: '预防校园欺凌专题教育',
         type: 'safety',
         priority: 'urgent',
@@ -464,10 +472,10 @@ const MOCK_DATA = {
         confirmType: 'click',
         readCount: '258/260',
         status: 'sent',
-        sendTime: '2024-11-12 15:00'
+        sendTime: '2025-11-12 15:00'
       },
       {
-        id: 'LH-TZ20260114001',
+        id: 'LH-TZ20250114001',
         title: '英语单元测试作业',
         type: 'homework',
         priority: 'normal',
@@ -476,10 +484,10 @@ const MOCK_DATA = {
         confirmType: 'click',
         readCount: '52/60',
         status: 'sent',
-        sendTime: '2024-11-11 14:30'
+        sendTime: '2025-11-11 14:30'
       },
       {
-        id: 'LH-TZ20260114002',
+        id: 'LH-TZ20250114002',
         title: '综合素质评价结果通知',
         type: 'score',
         priority: 'important',
@@ -488,10 +496,10 @@ const MOCK_DATA = {
         confirmType: 'signature',
         readCount: '55/60',
         status: 'sent',
-        sendTime: '2024-11-10 16:00'
+        sendTime: '2025-11-10 16:00'
       },
       {
-        id: 'LH-TZ20260113001',
+        id: 'LH-TZ20250113001',
         title: '元旦文艺汇演筹备通知',
         type: 'activity',
         priority: 'important',
@@ -501,7 +509,7 @@ const MOCK_DATA = {
         readCount: '0/260',
         status: 'pending',
         sendTime: '—',
-        scheduledTime: '2024-11-20 10:00'
+        scheduledTime: '2025-11-20 10:00'
       }
     ],
     stats: { totalSent: 218, readRate: 95, unconfirmed: 28, replied: 75, todayCount: 10 },
@@ -535,6 +543,14 @@ const unconfirmedNotice = ref(null)
 const currentNotice = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(12)
+const editingId = ref(null)
+const formRef = ref(null)
+
+const formRules = {
+  title: [{ required: true, message: '请输入通知标题', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择通知类型', trigger: 'change' }],
+  content: [{ required: true, message: '请输入通知内容', trigger: 'blur' }]
+}
 
 // ==================== 持久化数据（核心：用 usePersistedRef 包一层）====================
 const schoolMockData = computed(() => getMockData(schoolId.value))
@@ -575,7 +591,16 @@ const filteredNotices = computed(() => {
     const matchType = !filterType.value || notice.type === filterType.value
     const matchPriority = !filterPriority.value || notice.priority === filterPriority.value
     const matchStatus = !filterStatus.value || notice.status === filterStatus.value
-    return matchSearch && matchType && matchPriority && matchStatus
+    let matchDate = true
+    if (dateRange.value && dateRange.value.length === 2) {
+      const noticeTime = notice.sendTime === '—' ? null : new Date(notice.sendTime).getTime()
+      if (noticeTime) {
+        const startTime = new Date(dateRange.value[0]).setHours(0, 0, 0, 0)
+        const endTime = new Date(dateRange.value[1]).setHours(23, 59, 59, 999)
+        matchDate = noticeTime >= startTime && noticeTime <= endTime
+      }
+    }
+    return matchSearch && matchType && matchPriority && matchStatus && matchDate
   })
 })
 
@@ -594,6 +619,16 @@ const getConfirmTypeText = (type) => ({ click: '一键阅读', button: '按钮�
 const getFileIcon = (type) => ({ pdf: Document, word: Edit, excel: Histogram, ppt: Document }[type] || Link)
 const getStatusType = (status) => ({ sent: 'success', pending: 'warning' }[status] || 'info')
 const getStatusText = (status) => ({ sent: '已发送', pending: '待发送', draft: '草稿' }[status] || '草稿')
+const formatRoles = (roles) => roles.map(r => ({ student: '学生', teacher: '教师', parent: '家长' }[r] || r)).join('、')
+const formatGrades = (grades) => grades.map(g => ({ grade1: '一年级', grade2: '二年级', grade3: '三年级', grade4: '四年级', grade5: '五年级', grade6: '六年级' }[g] || g)).join('、')
+const formatClasses = (classes) => {
+  const gradeNames = ['一', '二', '三', '四', '五', '六']
+  return classes.map(c => {
+    const m = /^class(\d)(\d)$/.exec(c)
+    if (m) return `${gradeNames[parseInt(m[1]) - 1]}年级${m[2]}班`
+    return c
+  }).join('、')
+}
 
 // ==================== 图表初始化 ====================
 const initTypeChart = () => {
@@ -636,17 +671,18 @@ onBeforeUnmount(() => { if (typeChartInstance) typeChartInstance.dispose(); if (
 // ==================== 增删改查 ====================
 const getRecipientCount = (recipient) => {
   if (!recipient) return 0
-  if (recipient.includes('全体')) return 280
-  if (recipient.includes('全体家长')) return 280
-  if (recipient.includes('全体学生')) return 300
+  // 更具体的条件优先判断
   if (recipient.includes('全体师生')) return 350
+  if (recipient.includes('全体学生')) return 300
+  if (recipient.includes('全体家长')) return 280
+  if (recipient.includes('全体')) return 280
+  if (recipient.includes('五、六年级')) return 100
   if (recipient.includes('一年级')) return 50
   if (recipient.includes('二年级')) return 50
   if (recipient.includes('三年级')) return 50
   if (recipient.includes('四年级')) return 50
   if (recipient.includes('五年级')) return 50
   if (recipient.includes('六年级')) return 50
-  if (recipient.includes('五、六年级')) return 100
   if (recipient.includes('群体推送')) return 150
   if (recipient.includes('个人推送')) return 1
   if (recipient.includes('草稿')) return 0
@@ -657,25 +693,31 @@ const addNotice = (noticeData) => {
   const totalCount = getRecipientCount(noticeData.recipient)
   const newNotice = { id: generateDeterministicId('TZ', (noticeData.title || '') + '-' + (noticeData.type || '')), ...noticeData, sendTime: new Date().toLocaleString(), readCount: `0/${totalCount}`, status: noticeData.status || 'sent' }
   notices.value.unshift(newNotice)
-  stats.value.totalSent++
-  stats.value.todayCount++
-  typeStats.value[noticeData.type] = (typeStats.value[noticeData.type] || 0) + 1
-  ElMessage.success('通知已发送')
+  // 只有已发送通知才增加统计
+  if (newNotice.status === 'sent') {
+    stats.value.totalSent++
+    stats.value.todayCount++
+    typeStats.value[noticeData.type] = (typeStats.value[noticeData.type] || 0) + 1
+  }
 }
 
 const deleteNotice = async (row) => {
-  await ElMessageBox.confirm('确定删除此通知？', '提示', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' })
+  const displayTitle = row.title || row.id || '未知通知'
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除通知「${displayTitle}」吗？删除后不可恢复。`,
+      '删除确认',
+      { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning', confirmButtonType: 'danger' }
+    )
+  } catch {
+    return
+  }
   if (row.status === 'sent') {
     stats.value.totalSent--
     typeStats.value[row.type] = Math.max(0, (typeStats.value[row.type] || 0) - 1)
   }
   notices.value = notices.value.filter(n => n.id !== row.id)
-  ElMessage.success('删除成功')
-}
-
-const updateNoticeStatus = (id, status) => {
-  const notice = notices.value.find(n => n.id === id)
-  if (notice) notice.status = status
+  ElMessage.success('通知已删除')
 }
 
 // ==================== 原有方法 ====================
@@ -722,37 +764,141 @@ const exportData = () => {
 }
 
 const createNotice = () => {
-  createNoticeForm.value = { title: '', type: '', priority: 'normal', recipient: '', confirmType: 'click', content: '', isScheduled: false, scheduledTime: null, attachments: [], images: [], video: null, miniProgramLink: null }
+  createNoticeForm.value = {
+    title: '', type: '', priority: 'normal', sendType: 'group', roles: [], grades: [], classes: [],
+    targetUsers: '', urgentChannel: false, channels: ['app'], confirmType: 'click', content: '',
+    isScheduled: false, scheduledTime: null, attachments: [], images: [], video: null, miniProgramLink: null
+  }
+  editingId.value = null
   showCreateNotice.value = true
 }
 
-const submitNotice = () => {
-  if (!createNoticeForm.value.title) { ElMessage.warning('请输入通知标题'); return }
-  if (!createNoticeForm.value.type) { ElMessage.warning('请选择通知类型'); return }
-  if (!createNoticeForm.value.content) { ElMessage.warning('请输入通知内容'); return }
-  addNotice({ title: createNoticeForm.value.title, type: createNoticeForm.value.type, priority: createNoticeForm.value.priority, recipient: '草稿', content: createNoticeForm.value.content, confirmType: createNoticeForm.value.confirmType, status: 'draft' })
+const onDialogClosed = () => {
+  if (formRef.value) formRef.value.clearValidate()
+  createNoticeForm.value = {
+    title: '', type: '', priority: 'normal', sendType: 'group', roles: [], grades: [], classes: [],
+    targetUsers: '', urgentChannel: false, channels: ['app'], confirmType: 'click', content: '',
+    isScheduled: false, scheduledTime: null, attachments: [], images: [], video: null, miniProgramLink: null
+  }
+  editingId.value = null
+}
+
+const submitNotice = async () => {
+  if (!formRef.value) return
+  try {
+    await formRef.value.validate()
+  } catch {
+    return
+  }
+  const noticeData = {
+    title: createNoticeForm.value.title, type: createNoticeForm.value.type, priority: createNoticeForm.value.priority,
+    recipient: '草稿', content: createNoticeForm.value.content, confirmType: createNoticeForm.value.confirmType, status: 'draft'
+  }
+  addNotice(noticeData)
+  // 草稿也推送到铃铛（管理员可见所有通知）
+  pushToBell(noticeData)
+  ElMessage.success('草稿已保存')
   showCreateNotice.value = false
 }
 
-const sendNewNotice = () => {
-  if (!createNoticeForm.value.title) { ElMessage.warning('请输入通知标题'); return }
-  if (!createNoticeForm.value.type) { ElMessage.warning('请选择通知类型'); return }
-  if (!createNoticeForm.value.content) { ElMessage.warning('请输入通知内容'); return }
-  addNotice({
-    title: createNoticeForm.value.title, type: createNoticeForm.value.type, priority: createNoticeForm.value.priority,
-    recipient: createNoticeForm.value.sendType === 'group' ? '群体推送' : createNoticeForm.value.targetUsers,
-    content: createNoticeForm.value.content, confirmType: createNoticeForm.value.confirmType,
-    attachments: [], images: [], video: null, miniProgramLink: null
+const buildRecipientText = (form) => {
+  if (form.sendType === 'individual') {
+    return form.targetUsers || '个人推送'
+  }
+  // 群体推送：根据选择的角色/年级/班级生成接收对象描述
+  const parts = []
+  if (form.roles && form.roles.length > 0) {
+    parts.push(form.roles.map(r => ({ student: '学生', teacher: '教师', parent: '家长' }[r] || r)).join('、'))
+  }
+  if (form.grades && form.grades.length > 0) {
+    const gradeMap = { grade1: '一年级', grade2: '二年级', grade3: '三年级', grade4: '四年级', grade5: '五年级', grade6: '六年级' }
+    parts.push(form.grades.map(g => gradeMap[g] || g).join('、'))
+  }
+  if (form.classes && form.classes.length > 0) {
+    const gradeNames = ['一', '二', '三', '四', '五', '六']
+    const classMap = {}
+    for (let g = 1; g <= 6; g++) {
+      for (let c = 1; c <= 3; c++) {
+        classMap[`class${g}${c}`] = `${gradeNames[g - 1]}年级${c}班`
+      }
+    }
+    parts.push(form.classes.map(c => classMap[c] || c).join('、'))
+  }
+  return parts.length > 0 ? parts.join(' - ') : '全体家长'
+}
+
+// 发送通知到铃铛（广播给所有用户）
+const pushToBell = (noticeData) => {
+  sendBroadcastNotification({
+    title: `新通知：${noticeData.title}`,
+    content: noticeData.content.replace(/<[^>]+>/g, '').slice(0, 100),
+    type: 'general',
+    relatedStudents: []
   })
+}
+
+const sendNewNotice = async () => {
+  if (!formRef.value) return
+  try {
+    await formRef.value.validate()
+  } catch {
+    return
+  }
+  const recipient = buildRecipientText(createNoticeForm.value)
+  const noticeData = {
+    title: createNoticeForm.value.title, type: createNoticeForm.value.type, priority: createNoticeForm.value.priority,
+    recipient, content: createNoticeForm.value.content, confirmType: createNoticeForm.value.confirmType,
+    // 保存表单结构化数据用于编辑回显
+    sendType: createNoticeForm.value.sendType,
+    roles: [...(createNoticeForm.value.roles || [])],
+    grades: [...(createNoticeForm.value.grades || [])],
+    classes: [...(createNoticeForm.value.classes || [])],
+    targetUsers: createNoticeForm.value.targetUsers || '',
+    urgentChannel: createNoticeForm.value.urgentChannel || false,
+    channels: [...(createNoticeForm.value.channels || ['app'])],
+    isScheduled: createNoticeForm.value.isScheduled || false,
+    scheduledTime: createNoticeForm.value.scheduledTime || null,
+    attachments: [], images: [], video: null, miniProgramLink: null
+  }
+  if (editingId.value) {
+    // 编辑模式：更新已有通知
+    const idx = notices.value.findIndex(n => n.id === editingId.value)
+    if (idx !== -1) {
+      notices.value[idx] = { ...notices.value[idx], ...noticeData }
+      ElMessage.success('通知已更新')
+    }
+    editingId.value = null
+  } else {
+    addNotice(noticeData)
+    // 推送到铃铛
+    pushToBell(noticeData)
+    ElMessage.success('通知已发送')
+  }
   showCreateNotice.value = false
 }
 
 const resendNotice = (row) => {
   createNoticeForm.value = {
-    title: row.title, type: row.type || '', priority: row.priority || 'normal', sendType: 'group', roles: [], grades: [], classes: [],
-    targetUsers: '', urgentChannel: false, channels: ['app'], confirmType: row.confirmType || 'click', content: row.content || '',
-    isScheduled: false, scheduledTime: null, attachments: [], images: [], video: null, miniProgramLink: null
+    title: row.title || '',
+    type: row.type || '',
+    priority: row.priority || 'normal',
+    sendType: row.sendType || 'group',
+    roles: [...(row.roles || [])],
+    grades: [...(row.grades || [])],
+    classes: [...(row.classes || [])],
+    targetUsers: row.targetUsers || '',
+    urgentChannel: row.urgentChannel || false,
+    channels: [...(row.channels || ['app'])],
+    confirmType: row.confirmType || 'click',
+    content: row.content || '',
+    isScheduled: row.isScheduled || false,
+    scheduledTime: row.scheduledTime || null,
+    attachments: [...(row.attachments || [])],
+    images: [...(row.images || [])],
+    video: row.video || null,
+    miniProgramLink: row.miniProgramLink || null
   }
+  editingId.value = row.id
   showCreateNotice.value = true
 }
 </script>
