@@ -18,7 +18,7 @@ import { defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 
 const UserManagement = defineAsyncComponent(() => import('./user/UserManagement.vue'))
-const StudentManagement = defineAsyncComponent(() => import('./user/StudentManagement.vue'))
+const StudentManagement = defineAsyncComponent(() => import('./user/StudentManagement/index.vue'))
 const DeviceManagement = defineAsyncComponent(() => import('./user/DeviceManagement.vue'))
 const WorkOrderManagement = defineAsyncComponent(() => import('./user/WorkOrderManagement.vue'))
 const ResourceManagement = defineAsyncComponent(() => import('./user/ResourceManagement.vue'))

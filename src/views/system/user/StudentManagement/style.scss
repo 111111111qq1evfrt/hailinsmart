@@ -1,0 +1,1204 @@
+/* StudentManagement 样式 - 从组件中抽离 */
+.student-management {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 卡片 */
+.list-card {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 表格容器 */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* 学生信息单元格 */
+.student-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1A1A2E;
+}
+
+.student-gender {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+/* 性别标签 */
+.gender-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gender-男 {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.gender-女 {
+  background: #FCE7F3;
+  color: #BE185D;
+}
+
+/* 面部标签 */
+.face-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.face-yes { background: #DCFCE7; color: #166534; }
+.face-no { background: #F3F4F6; color: #6B7280; }
+
+.test-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.test-done { background: #DCFCE7; color: #166534; }
+.test-pending { background: #F3F4F6; color: #6B7280; }
+
+.item-class-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.text-gray {
+  color: #9CA3AF;
+}
+
+/* 重录面部信息弹窗 */
+.face-reregistration {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reregister-notice {
+  margin-bottom: 8px;
+}
+
+.reregister-notice p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.reregister-notice strong {
+  color: #1A1A2E;
+  font-weight: 600;
+}
+
+.notice-hint {
+  color: #E85D4E !important;
+  font-size: 12px !important;
+  margin-top: 12px !important;
+}
+
+.camera-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.preview-area {
+  width: 320px;
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #6B7280;
+}
+
+.video-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.captured-image {
+  width: 320px;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.preview-hint-small {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-img-large {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-avatar {
+  border: 2px solid #EEF6FF;
+}
+
+.preview-placeholder p {
+  font-size: 14px;
+}
+
+.camera-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E8EAED;
+}
+
+.status-indicator.ready {
+  background: #1E5AA8;
+}
+
+/* 班级网格 */
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.class-card {
+  border: 1px solid #E8EAED;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.class-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.class-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.class-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 批量操作栏样式 */
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #EFF6FF;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.batch-count {
+  font-size: 14px;
+  color: #1A1A2E;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+.class-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1A1A2E;
+}
+
+.class-type {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.type-admin { background: #DCFCE7; color: #166534; }
+.type-item { background: #DBEAFE; color: #1E40AF; }
+
+.class-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.class-stat .stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E5AA8;
+}
+
+.class-stat .stat-label {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.class-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* 弹窗表单 */
+.import-form {
+  padding: 20px 0;
+}
+
+.form-item {
+  margin-bottom: 20px;
+}
+
+.form-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #1A1A2E;
+}
+
+/* 学生详情 */
+.student-detail {
+  padding: 10px 0;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #E8EAED;
+  margin-bottom: 20px;
+}
+
+.student-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #1A1A2E;
+}
+
+.student-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.detail-body {
+  padding: 0 10px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #F7F8FA;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.detail-value {
+  color: #1A1A2E;
+  font-weight: 500;
+}
+
+.face-registered { color: #1E5AA8; }
+.face-unregistered { color: #E85D4E; }
+
+/* 列设置弹窗 */
+.column-settings {
+  padding: 10px 0;
+}
+
+.column-option {
+  padding: 8px 0;
+}
+
+/* 班级表单 */
+.class-form {
+  padding: 10px 0;
+}
+/* 面部信息录入弹窗 */
+.face-registration {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.registration-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-indicator span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #E8EAED;
+  color: #6B7280;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.step-indicator span.active {
+  background: #1E5AA8;
+  color: #FFFFFF;
+}
+
+.step-line {
+  width: 60px;
+  height: 2px;
+  background: #E8EAED;
+}
+
+.step-labels {
+  display: flex;
+  gap: 40px;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.step-content {
+  min-height: 400px;
+}
+
+/* 步骤 1: 选择学生 */
+.select-student {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.student-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.student-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #E8EAED;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.student-item:hover {
+  background: #F7F8FA;
+  border-color: #1E5AA8;
+}
+
+.student-item.selected {
+  background: rgba(45, 125, 70, 0.1);
+  border-color: #1E5AA8;
+}
+
+.student-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1A1A2E;
+}
+
+.student-id {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.face-status {
+  font-size: 12px;
+  color: #1E5AA8;
+  padding: 4px 8px;
+  background: rgba(45, 125, 70, 0.1);
+  border-radius: 4px;
+}
+
+/* 步骤 2: 采集图像 */
+.camera-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.camera-frame {
+  position: relative;
+  width: 320px;
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.camera-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.preview-hint {
+  font-size: 14px;
+  color: #9CA3AF;
+}
+
+.face-guide {
+  position: absolute;
+  top: 60px;
+  left: 60px;
+  right: 60px;
+  bottom: 60px;
+  pointer-events: none;
+}
+
+.guide-line {
+  position: absolute;
+  background: rgba(45, 125, 70, 0.5);
+}
+
+.guide-line.top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.guide-line.bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.guide-line.left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+}
+
+.guide-line.right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+}
+
+.guide-text {
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  color: #1E5AA8;
+}
+
+.camera-status {
+  padding: 8px 16px;
+  background: rgba(45, 125, 70, 0.1);
+  border-radius: 6px;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #1E5AA8;
+}
+
+.camera-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* 步骤 3: 完成录入 */
+.success-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #1E5AA8;
+  color: #FFFFFF;
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-content h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1A1A2E;
+  margin: 0;
+}
+
+.student-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+}
+
+.summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1A1A2E;
+}
+
+.summary-id {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.success-hint {
+  font-size: 14px;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* 自动升级弹窗样式 */
+.promotion-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.promotion-form .form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.promotion-form .form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1A1A2E;
+}
+
+/* 自动化说明 */
+.auto-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%);
+  border-radius: 8px;
+  border: 1px solid #BBF7D0;
+}
+
+.auto-icon {
+  font-size: 28px;
+}
+
+.auto-text strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 4px;
+}
+
+.auto-text p {
+  font-size: 13px;
+  color: #15803D;
+  margin: 0;
+}
+
+/* 策略选择 */
+.strategy-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.strategy-group .el-radio {
+  padding: 12px;
+  background: #F7F8FA;
+  border-radius: 8px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.strategy-group .el-radio:hover {
+  background: #F0FDF4;
+}
+
+.strategy-group .el-radio__input {
+  flex-shrink: 0;
+}
+
+.strategy-group .radio-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1A1A2E;
+  display: block;
+}
+
+.strategy-group .radio-desc {
+  font-size: 12px;
+  color: #6B7280;
+  display: block;
+  margin-top: 2px;
+}
+
+/* 自动升学开关 */
+.auto-toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+}
+
+.toggle-desc {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+/* 指定年级升学 */
+.single-promotion {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.promotion-selects {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.promotion-selects .arrow {
+  font-size: 18px;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+/* 指定学生升学 */
+.student-promotion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+/* 高级选项 */
+.promotion-form .el-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* 升级预览 */
+.promotion-preview {
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+}
+
+.promotion-preview .preview-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E5AA8;
+  margin-bottom: 8px;
+}
+
+.promotion-preview .preview-content {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.promotion-preview .preview-content p {
+  margin: 4px 0;
+}
+
+.promotion-preview .highlight {
+  font-weight: 600;
+  color: #1E5AA8;
+}
+
+.promotion-preview .preview-detail {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+.promotion-preview .preview-hint {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.promotion-preview .preview-detail {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin-top: 8px;
+}
+
+.promotion-preview .preview-note {
+  font-size: 13px;
+  color: #1E5AA8;
+  margin-top: 8px;
+}
+
+/* 预览统计 */
+.preview-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.preview-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  background: #FFFFFF;
+  border-radius: 8px;
+  border: 1px solid #E8EAED;
+}
+
+.preview-stats .stat-num {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1E5AA8;
+}
+
+.preview-stats .stat-label {
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 4px;
+}
+
+/* 智能分班推荐弹窗 */
+.recommend-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.recommend-alert {
+  margin-bottom: 8px;
+}
+
+.recommend-alert p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.recommend-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+}
+
+.stat-icon {
+  font-size: 32px;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-info .stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E5AA8;
+}
+
+.stat-info .stat-label {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.recommend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A2E;
+}
+
+.recommend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.recommend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+  border: 1px solid #E8EAED;
+}
+
+.item-student {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1A1A2E;
+}
+
+.item-detail {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.item-recommend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.recommend-class {
+  font-weight: 600;
+  color: #1E5AA8;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.new-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #F5A623;
+  color: #FFFFFF;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.item-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.confidence-label {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 6px;
+  background: #E8EAED;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1E5AA8, #3B82F6);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.confidence-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1E5AA8;
+  min-width: 36px;
+  text-align: right;
+}
+
+.filter-options {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.empty-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: #9CA3AF;
+}
+
+.empty-hint p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.captured-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.captured-hint {
+  font-size: 14px;
+  color: #1E5AA8;
+  font-weight: 500;
+}
+
+.status-indicator.active {
+  background: #1E5AA8;
+}
+
+.face-guide.scanning {
+  animation: scan 1.5s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.summary-class {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.success-details {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item .detail-label {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.detail-item .detail-value {
+  font-size: 14px;
+  color: #1A1A2E;
+  font-weight: 500;
+}
+
+.status-success {
+  color: #1E5AA8;
+}
+
+.import-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  background: #F7F8FA;
+  border-radius: 8px;
+  min-width: 80px;
+}
+
+.stat-chip .chip-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1A1A2E;
+}
+
+.stat-chip .chip-label {
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 2px;
+}
+
+.stat-chip.chip-new {
+  background: #DCFCE7;
+}
+
+.stat-chip.chip-new .chip-num {
+  color: #166534;
+}
+
+.stat-chip.chip-update {
+  background: #DBEAFE;
+}
+
+.stat-chip.chip-update .chip-num {
+  color: #1E40AF;
+}
+
+.stat-chip.chip-duplicate {
+  background: #FEF3C7;
+}
+
+.stat-chip.chip-duplicate .chip-num {
+  color: #92400E;
+}
+
+.switch-desc {
+  margin-left: 12px;
+  font-size: 12px;
+  color: #6B7280;
+}
