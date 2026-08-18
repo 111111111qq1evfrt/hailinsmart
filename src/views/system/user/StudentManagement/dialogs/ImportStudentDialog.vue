@@ -99,7 +99,7 @@ import { MOCK_CUSTOM_TEMPLATES } from '@/data/mockData'
 import * as XLSX from 'xlsx'
 import TemplateDownload from '@/components/export/TemplateDownload.vue'
 import store from '@/store/global'
-import { addStudentListApi, changeStudentListApi } from '@/utils/daiweiApi'
+import { addStudentList, changeStudentList } from '@/utils/daiweiApi'
 import { daiweiConfig } from '@/config/daiwei'
 import { createSeededRandom, generateDeterministicId } from '@/utils/seededRandom'
 import { GRADES, GRADE_MAP, SPORTS_INTERESTS, NAME_POOL, GENDER_MAP } from '../constants.js'
@@ -362,10 +362,10 @@ const confirmImport = async () => {
 
     try {
       if (addList.length > 0) {
-        const addResult = await addStudentListApi({ add_list: addList }, store.state.school.id)
+        const addResult = await addStudentList({ add_list: addList }, store.state.school.id)
       }
       if (changeList.length > 0) {
-        const changeResult = await changeStudentListApi({ change_list: changeList }, store.state.school.id)
+        const changeResult = await changeStudentList({ change_list: changeList }, store.state.school.id)
       }
     } catch (error) {
       console.warn('批量导入学生API调用失败:', error.message)

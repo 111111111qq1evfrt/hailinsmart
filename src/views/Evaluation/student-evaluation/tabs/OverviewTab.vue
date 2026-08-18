@@ -805,7 +805,7 @@ onBeforeUnmount(() => {
 
 .prediction-chart {
   width: 400px;
-  height: 160px;
+  height: 220px;
   background: #F7F8FA;
   border-radius: 8px;
   display: flex;
