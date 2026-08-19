@@ -1,212 +1,224 @@
 <template>
-  <div class="visualization-screen">
-    <div class="screen-bg">
-      <span class="bg-orb orb-left"></span>
-      <span class="bg-orb orb-right"></span>
-      <span class="scan-line"></span>
-      <span class="grid-mask"></span>
+  <div class="screen-wrapper">
+    <div class="visualization-screen" ref="screenRef">
+      <div class="screen-bg">
+        <span class="bg-orb orb-left"></span>
+        <span class="bg-orb orb-right"></span>
+        <span class="scan-line"></span>
+        <span class="grid-mask"></span>
+      </div>
+
+      <header class="screen-header" ref="headerRef">
+        <div class="header-side">
+          <div class="header-meta">
+            <span class="meta-label">数据来源</span>
+            <span class="meta-value">校级训练、体测、课堂练习</span>
+          </div>
+          <div class="weather-box" v-if="weatherInfo">
+            <div class="weather-icon">{{ weatherInfo.icon }}</div>
+            <div class="weather-text">
+              <span class="weather-temp">{{ weatherInfo.temp }}°C</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-title">
+          <div class="title-decor"></div>
+          <h1>课外锻炼实时数据</h1>
+          <!-- 标题下方流光 -->
+          <div class="title-flow">
+            <div class="flow-light"></div>
+          </div>
+          <p>SPORTS INTELLIGENCE DASHBOARD</p>
+        </div>
+
+        <div class="header-side header-side-right">
+          <div class="live-badge">
+            <span class="live-dot"></span>
+            <span>实时更新中</span>
+          </div>
+          <div class="time-panel">
+            <div class="time-main">{{ nowDisplay.time }}</div>
+            <div class="time-sub">{{ nowDisplay.date }}</div>
+          </div>
+          <div class="exit-button" @click="goBack">
+            <el-icon :size="18"><Close /></el-icon>
+            <span>退出</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="dashboard-grid">
+        <div class="side-column">
+          <article class="panel-card" ref="leftTrendPanelRef">
+            <div class="panel-light"></div>
+            <div class="panel-header">
+              <div>
+                <h3>近7天运动人次</h3>
+              </div>
+              <span class="panel-tag">趋势</span>
+            </div>
+            <div ref="trendChartRef" class="chart-box"></div>
+          </article>
+
+          <article class="panel-card panel-compact" ref="leftRankingPanelRef">
+            <div class="panel-light"></div>
+            <div class="panel-header">
+              <div>
+                <h3>运动成绩 TOP10</h3>
+              </div>
+              <span class="panel-tag">榜单</span>
+            </div>
+            <div class="ranking-list">
+              <div v-for="item in topPerformers" :key="item.rank" class="ranking-item">
+                <div class="ranking-main">
+                  <span class="ranking-rank" :class="`rank-${Math.min(item.rank, 4)}`">{{ item.rank }}</span>
+                  <div>
+                    <div class="ranking-name">{{ item.name }}</div>
+                    <div class="ranking-class">{{ item.class }}</div>
+                  </div>
+                </div>
+                <div class="ranking-side">
+                  <div class="ranking-score">{{ item.score }}</div>
+                  <div class="ranking-project">{{ item.project }}</div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="center-column">
+          <article class="panel-card hero-panel" ref="heroPanelRef">
+            <div class="panel-light"></div>
+            <div class="hero-panel__glow"></div>
+            <div class="panel-header">
+              <div>
+                <h3>今日运动数据</h3>
+              </div>
+              <span class="panel-tag">今日</span>
+            </div>
+            <div class="hero-section">
+              <div class="hero-metrics">
+                <div class="hero-metric">
+                  <span>今日参与人数</span>
+                  <strong>{{ numberFormatter.format(liveStats.todayActive) }}</strong>
+                </div>
+                <div class="hero-metric">
+                  <span>今日运动人次</span>
+                  <strong>{{ numberFormatter.format(liveStats.todaySportsCount) }}</strong>
+                </div>
+                <div class="hero-metric">
+                  <span>今日有效人次</span>
+                  <strong>{{ numberFormatter.format(Math.round(liveStats.todaySportsCount * 0.68)) }}</strong>
+                </div>
+                <div class="hero-metric">
+                  <span>今日运动公里</span>
+                  <strong>{{ totalDistance.toFixed(2) }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="hero-section">
+              <div class="hero-metrics">
+                <div class="hero-metric">
+                  <span>累计参与人数</span>
+                  <strong>{{ heroStats.totalParticipants }}</strong>
+                </div>
+                <div class="hero-metric">
+                  <span>累计运动公里</span>
+                  <strong>{{ heroStats.totalDistance }}</strong>
+                </div>
+                <div class="hero-metric">
+                  <span>累计人均次数</span>
+                  <strong>{{ heroStats.avgExercise }}</strong>
+                </div>
+                <div class="hero-metric">
+                  <span>累计人均公里</span>
+                  <strong>{{ heroStats.avgDistance }}</strong>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel-card" ref="distributionPanelRef">
+            <div class="panel-light"></div>
+            <div class="panel-header">
+              <div>
+                <h3>学段参与分布</h3>
+              </div>
+              <span class="panel-tag">分布</span>
+            </div>
+            <div class="distribution-wrap">
+              <div ref="distributionChartRef" class="chart-box chart-box--small"></div>
+              <div class="summary-grid">
+                <div v-for="item in summaryCards" :key="item.label" class="summary-card">
+                  <span>{{ item.label }}</span>
+                  <strong>{{ item.value }}</strong>
+                  <em>{{ item.helper }}</em>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel-card" ref="centerTrendPanelRef">
+            <div class="panel-light"></div>
+            <div class="panel-header">
+              <div>
+                <h3>学期锻炼趋势</h3>
+              </div>
+              <span class="panel-tag">月度</span>
+            </div>
+            <div ref="monthlyChartRef" class="chart-box"></div>
+          </article>
+        </div>
+
+        <div class="side-column">
+          <article class="panel-card" ref="rightBarPanelRef">
+            <div class="panel-light"></div>
+            <div class="panel-header">
+              <div>
+                <h3>班级参与率 TOP10</h3>
+              </div>
+              <span class="panel-tag">排行</span>
+            </div>
+            <div class="progress-list">
+              <div v-for="item in classRanking" :key="item.name" class="progress-item">
+                <div class="progress-row">
+                  <span>{{ item.name }}</span>
+                  <strong>{{ item.value }}%</strong>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-bar" :style="{ width: `${item.value}%` }"></div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel-card panel-compact" ref="feedPanelRef">
+            <div class="panel-light"></div>
+            <div class="panel-header">
+              <div>
+                <h3>实时运动数据</h3>
+              </div>
+              <span class="panel-tag">LIVE</span>
+            </div>
+            <div class="feed-list">
+              <div v-for="item in liveFeed" :key="item.id" class="feed-item">
+                <div class="feed-avatar">{{ item.name.slice(0, 1) }}</div>
+                <div class="feed-content">
+                  <div class="feed-top">
+                    <span class="feed-name">{{ item.name }}</span>
+                    <span class="feed-time">{{ item.time }}</span>
+                  </div>
+                  <div class="feed-text">
+                    {{ item.project }} · {{ item.result }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </div>
-
-    <header class="screen-header" ref="headerRef">
-      <div class="header-side">
-       
-        <div class="header-meta">
-          <span class="meta-label">数据来源</span>
-          <span class="meta-value">校级训练、体测、课堂练习</span>
-        </div>
-        <div class="weather-box" v-if="weatherInfo">
-          <div class="weather-icon">{{ weatherInfo.icon }}</div>
-          <div class="weather-text">
-            <span class="weather-temp">{{ weatherInfo.temp }}°C</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="header-title">
-        <div class="title-decor"></div>
-        <h1>课外锻炼实时数据</h1>
-        <p>SPORTS INTELLIGENCE DASHBOARD</p>
-      </div>
-
-      <div class="header-side header-side-right">
-        <div class="live-badge">
-          <span class="live-dot"></span>
-          <span>实时更新中</span>
-        </div>
-        <div class="time-panel">
-          <div class="time-main">{{ nowDisplay.time }}</div>
-          <div class="time-sub">{{ nowDisplay.date }}</div>
-        </div>
-        <div class="exit-button" @click="goBack">
-          <el-icon :size="18"><Close /></el-icon>
-          <span>退出</span>
-        </div>
-      </div>
-    </header>
-
-    <section class="dashboard-grid">
-      <div class="side-column">
-        <article class="panel-card" ref="leftTrendPanelRef">
-          <div class="panel-header">
-            <div>
-              <h3>近7天运动人次</h3>
-            </div>
-            <span class="panel-tag">趋势</span>
-          </div>
-          <div ref="trendChartRef" class="chart-box"></div>
-        </article>
-
-        <article class="panel-card panel-compact" ref="leftRankingPanelRef">
-          <div class="panel-header">
-            <div>
-              <h3>运动成绩 TOP10</h3>
-            </div>
-            <span class="panel-tag">榜单</span>
-          </div>
-          <div class="ranking-list">
-            <div v-for="item in topPerformers" :key="item.rank" class="ranking-item">
-              <div class="ranking-main">
-                <span class="ranking-rank" :class="`rank-${Math.min(item.rank, 4)}`">{{ item.rank }}</span>
-                <div>
-                  <div class="ranking-name">{{ item.name }}</div>
-                  <div class="ranking-class">{{ item.class }}</div>
-                </div>
-              </div>
-              <div class="ranking-side">
-                <div class="ranking-score">{{ item.score }}</div>
-                <div class="ranking-project">{{ item.project }}</div>
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <div class="center-column">
-        <article class="panel-card hero-panel" ref="heroPanelRef">
-          <div class="hero-panel__glow"></div>
-          <div class="panel-header">
-            <div>
-              <h3>今日运动数据</h3>
-            </div>
-            <span class="panel-tag">今日</span>
-          </div>
-          <div class="hero-section">
-            <div class="hero-metrics">
-              <div class="hero-metric">
-                <span>今日参与人数</span>
-                <strong>{{ numberFormatter.format(liveStats.todayActive) }}</strong>
-              </div>
-              <div class="hero-metric">
-                <span>今日运动人次</span>
-                <strong>{{ numberFormatter.format(liveStats.todaySportsCount) }}</strong>
-              </div>
-              <div class="hero-metric">
-                <span>今日有效人次</span>
-                <strong>{{ numberFormatter.format(Math.round(liveStats.todaySportsCount * 0.68)) }}</strong>
-              </div>
-              <div class="hero-metric">
-                <span>今日运动公里</span>
-                <strong>{{ totalDistance.toFixed(2) }}</strong>
-              </div>
-            </div>
-          </div>
-          <div class="hero-section">
-            <div class="hero-metrics">
-              <div class="hero-metric">
-                <span>累计参与人数</span>
-                <strong>{{ heroStats.totalParticipants }}</strong>
-              </div>
-              <div class="hero-metric">
-                <span>累计运动公里</span>
-                <strong>{{ heroStats.totalDistance }}</strong>
-              </div>
-              <div class="hero-metric">
-                <span>累计人均次数</span>
-                <strong>{{ heroStats.avgExercise }}</strong>
-              </div>
-              <div class="hero-metric">
-                <span>累计人均公里</span>
-                <strong>{{ heroStats.avgDistance }}</strong>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article class="panel-card" ref="distributionPanelRef">
-          <div class="panel-header">
-            <div>
-              <h3>学段参与分布</h3>
-            </div>
-            <span class="panel-tag">分布</span>
-          </div>
-          <div class="distribution-wrap">
-            <div ref="distributionChartRef" class="chart-box chart-box--small"></div>
-            <div class="summary-grid">
-              <div v-for="item in summaryCards" :key="item.label" class="summary-card">
-                <span>{{ item.label }}</span>
-                <strong>{{ item.value }}</strong>
-                <em>{{ item.helper }}</em>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article class="panel-card" ref="centerTrendPanelRef">
-          <div class="panel-header">
-            <div>
-              <h3>学期锻炼趋势</h3>
-            </div>
-            <span class="panel-tag">月度</span>
-          </div>
-          <div ref="monthlyChartRef" class="chart-box"></div>
-        </article>
-      </div>
-
-      <div class="side-column">
-      <article class="panel-card" ref="rightBarPanelRef">
-        <div class="panel-header">
-          <div>
-            <h3>班级参与率 TOP10</h3>
-          </div>
-          <span class="panel-tag">排行</span>
-        </div>
-        <div class="progress-list">
-          <div v-for="item in classRanking" :key="item.name" class="progress-item">
-            <div class="progress-row">
-              <span>{{ item.name }}</span>
-              <strong>{{ item.value }}%</strong>
-            </div>
-            <div class="progress-track">
-              <div class="progress-bar" :style="{ width: `${item.value}%` }"></div>
-            </div>
-          </div>
-        </div>
-      </article>
-
-        <article class="panel-card panel-compact" ref="feedPanelRef">
-          <div class="panel-header">
-            <div>
-              <h3>实时运动数据</h3>
-            </div>
-            <span class="panel-tag">LIVE</span>
-          </div>
-          <div class="feed-list">
-            <div v-for="item in liveFeed" :key="item.id" class="feed-item">
-              <div class="feed-avatar">{{ item.name.slice(0, 1) }}</div>
-              <div class="feed-content">
-                <div class="feed-top">
-                  <span class="feed-name">{{ item.name }}</span>
-                  <span class="feed-time">{{ item.time }}</span>
-                </div>
-                <div class="feed-text">
-                  {{ item.project }} · {{ item.result }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -258,6 +270,7 @@ const now = ref(new Date())
 const liveFeed = ref([])
 const weatherInfo = ref(null)
 
+const screenRef = ref(null)
 const headerRef = ref(null)
 const heroPanelRef = ref(null)
 const distributionPanelRef = ref(null)
@@ -315,7 +328,6 @@ const classRanking = computed(() => {
   studentsList.forEach(s => {
     const grade = s.grade || ''
     const cls = s.class || s.className || ''
-    // 组合成 "几年级几班" 格式
     const fullName = `${grade}${cls}`.trim() || '未知班级'
     if (!classMap[fullName]) {
       classMap[fullName] = 0
@@ -482,40 +494,39 @@ const fetchWeather = async () => {
     )
     const data = await res.json()
     const w = data.current_weather
-  const codeMap = {
-    0: { icon: '晴' },
-    1: { icon: '多云' },
-    2: { icon: '多云' },
-    3: { icon: '阴' },
-    45: { icon: '雾' },
-    48: { icon: '雾凇' },
-    51: { icon: '小雨' },
-    53: { icon: '中雨' },
-    55: { icon: '大雨' },
-    56: { icon: '冻雨' },
-    57: { icon: '冻雨' },
-    61: { icon: '小雨' },
-    63: { icon: '中雨' },
-    65: { icon: '大雨' },
-    66: { icon: '冻雨' },
-    67: { icon: '冻雨' },
-    71: { icon: '小雪' },
-    73: { icon: '中雪' },
-    75: { icon: '大雪' },
-    77: { icon: '雪粒' },
-    80: { icon: '阵雨' },
-    81: { icon: '阵雨' },
-    82: { icon: '暴雨' },
-    85: { icon: '阵雪' },
-    86: { icon: '阵雪' },
-    95: { icon: '雷雨' },
-    96: { icon: '雷雹' },
-    99: { icon: '雷雹' },
-  }
+    const codeMap = {
+      0: { icon: '晴' },
+      1: { icon: '多云' },
+      2: { icon: '多云' },
+      3: { icon: '阴' },
+      45: { icon: '雾' },
+      48: { icon: '雾凇' },
+      51: { icon: '小雨' },
+      53: { icon: '中雨' },
+      55: { icon: '大雨' },
+      56: { icon: '冻雨' },
+      57: { icon: '冻雨' },
+      61: { icon: '小雨' },
+      63: { icon: '中雨' },
+      65: { icon: '大雨' },
+      66: { icon: '冻雨' },
+      67: { icon: '冻雨' },
+      71: { icon: '小雪' },
+      73: { icon: '中雪' },
+      75: { icon: '大雪' },
+      77: { icon: '雪粒' },
+      80: { icon: '阵雨' },
+      81: { icon: '阵雨' },
+      82: { icon: '暴雨' },
+      85: { icon: '阵雪' },
+      86: { icon: '阵雪' },
+      95: { icon: '雷雨' },
+      96: { icon: '雷雹' },
+      99: { icon: '雷雹' },
+    }
     const map = codeMap[w.weathercode] || { desc: '晴', icon: '晴' }
     weatherInfo.value = {
       temp: Math.round(w.temperature),
-
       icon: map.icon
     }
   } catch (e) {
@@ -529,10 +540,22 @@ const setStatCardRef = (el, index) => {
   }
 }
 
+/* ========== 大屏等比缩放核心逻辑 ========== */
+const DESIGN_WIDTH = 1920
+const DESIGN_HEIGHT = 1080
+
+const setScale = () => {
+  if (!screenRef.value) return
+  const scaleX = window.innerWidth / DESIGN_WIDTH
+  const scaleY = window.innerHeight / DESIGN_HEIGHT
+  const scale = Math.min(scaleX, scaleY)
+  screenRef.value.style.transform = `scale(${scale})`
+}
+
 const initTrendChart = () => {
   if (!trendChartRef.value) return
   if (!trendChart) {
-    trendChart = echarts.init(trendChartRef.value, null, { devicePixelRatio: 2 }) 
+    trendChart = echarts.init(trendChartRef.value, null, { devicePixelRatio: 2 })
   }
   trendChart.setOption({
     animationDuration: 800,
@@ -664,27 +687,36 @@ const handleResize = () => {
   monthlyChart?.resize()
 }
 
+/* ========== 对冲入场动画 ========== */
 const animateEntrance = () => {
-  const panels = [
-    headerRef.value,
-    ...statCardRefs.value,
-    leftTrendPanelRef.value,
-    leftRankingPanelRef.value,
-    heroPanelRef.value,
-    distributionPanelRef.value,
-    centerTrendPanelRef.value,
-    rightBarPanelRef.value,
-    feedPanelRef.value
-  ].filter(Boolean)
-  gsap.set(panels, { opacity: 0, y: 24 })
-  gsap.to(panels, {
-    opacity: 1,
-    y: 0,
-    duration: 0.8,
-    stagger: 0.06,
-    ease: 'power2.out',
-    delay: 0.1
-  })
+  // Header 从顶部淡入
+  gsap.fromTo(headerRef.value,
+    { opacity: 0, y: -40 },
+    { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }
+  )
+
+  // 左侧列：从左边对冲滑入
+  const leftPanels = [leftTrendPanelRef.value, leftRankingPanelRef.value].filter(Boolean)
+  gsap.fromTo(leftPanels,
+    { opacity: 0, x: -80 },
+    { opacity: 1, x: 0, duration: 0.9, stagger: 0.15, ease: 'power3.out', delay: 0.3 }
+  )
+
+  // 右侧列：从右边对冲滑入
+  const rightPanels = [rightBarPanelRef.value, feedPanelRef.value].filter(Boolean)
+  gsap.fromTo(rightPanels,
+    { opacity: 0, x: 80 },
+    { opacity: 1, x: 0, duration: 0.9, stagger: 0.15, ease: 'power3.out', delay: 0.3 }
+  )
+
+  // 中间列：从下方升起
+  const centerPanels = [heroPanelRef.value, distributionPanelRef.value, centerTrendPanelRef.value].filter(Boolean)
+  gsap.fromTo(centerPanels,
+    { opacity: 0, y: 60 },
+    { opacity: 1, y: 0, duration: 0.9, stagger: 0.12, ease: 'power3.out', delay: 0.5 }
+  )
+
+  // 背景扫描线
   gsap.to('.scan-line', {
     yPercent: 260,
     duration: 5,
@@ -703,6 +735,7 @@ onMounted(() => {
   syncLiveStats()
   buildLiveFeed()
   nextTick(() => {
+    setScale()
     renderCharts()
     animateEntrance()
     resizeObserver = new ResizeObserver(() => {
@@ -719,10 +752,12 @@ onMounted(() => {
     simulateRealtimeUpdate()
   }, 4000)
   window.addEventListener('resize', handleResize)
+  window.addEventListener('resize', setScale)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('resize', setScale)
   if (resizeObserver) {
     resizeObserver.disconnect()
     resizeObserver = null
@@ -737,10 +772,22 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.visualization-screen {
-  position: relative;
+/* 外层容器：占满视口，居中，截断溢出 */
+.screen-wrapper {
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
+  background: #040b15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visualization-screen {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  flex-shrink: 0;
   padding: 14px 20px 16px;
   overflow: hidden;
   background:
@@ -750,6 +797,7 @@ onBeforeUnmount(() => {
   color: #eaf4ff;
   display: flex;
   flex-direction: column;
+  transform-origin: center center;
 }
 
 .screen-bg,
@@ -896,8 +944,10 @@ onBeforeUnmount(() => {
   color: #88afe0;
 }
 
+/* ========== 标题区 + 流光下划线 ========== */
 .header-title {
   text-align: center;
+  position: relative;
 }
 
 .title-decor {
@@ -915,8 +965,36 @@ onBeforeUnmount(() => {
   font-weight: 800;
 }
 
+/* 标题下方流光扫描线 */
+.title-flow {
+  position: relative;
+  width: 70%;
+  height: 2px;
+  margin: 10px auto 0;
+  background: rgba(96, 165, 250, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.flow-light {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #60A5FA, #3B82F6, transparent);
+  filter: blur(0.5px);
+  box-shadow: 0 0 10px #60A5FA, 0 0 20px rgba(59, 130, 246, 0.4);
+  animation: titleFlow 2.8s linear infinite;
+}
+
+@keyframes titleFlow {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+
 .header-title p {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   color: #8fb8ea;
   font-size: 14px;
   letter-spacing: 1px;
@@ -972,8 +1050,6 @@ onBeforeUnmount(() => {
   border-color: rgba(59, 130, 246, 0.45);
 }
 
-
-
 .stat-card {
   padding: 12px 14px;
   border-radius: 14px;
@@ -1024,12 +1100,13 @@ onBeforeUnmount(() => {
   color: #E85D4E;
 }
 
+/* ========== 面板卡片 + 上下流光边框 ========== */
 .stat-card,
 .panel-card,
 .hero-panel {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(114, 177, 255, 0.18);
+  border: 1px solid rgba(114, 177, 255, 0.12);
   background: linear-gradient(180deg, rgba(9, 24, 48, 0.82), rgba(5, 15, 30, 0.92));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 30px rgba(0, 0, 0, 0.24);
 }
@@ -1043,6 +1120,50 @@ onBeforeUnmount(() => {
   border-radius: inherit;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), transparent 35%, transparent 70%, rgba(30, 90, 168, 0.08));
   pointer-events: none;
+}
+
+/* 面板上下流光边线（不围成圈） */
+.panel-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.panel-light::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #60A5FA, transparent);
+  box-shadow: 0 0 8px #60A5FA;
+  animation: panelLightMove 3.5s linear infinite;
+}
+
+.panel-light::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -40%;
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #3B82F6, transparent);
+  box-shadow: 0 0 8px #3B82F6;
+  animation: panelLightMoveReverse 3.5s linear infinite;
+}
+
+@keyframes panelLightMove {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+
+@keyframes panelLightMoveReverse {
+  0%   { right: -40%; }
+  100% { right: 100%; }
 }
 
 .dashboard-grid {
@@ -1069,12 +1190,10 @@ onBeforeUnmount(() => {
   flex: 0.8;
 }
 
-/* 右侧栏第一个面板（班级排行）占更多空间 */
 .side-column:last-child > .panel-card:nth-child(1) {
   flex: 1;
 }
 
-/* 右侧栏第二个面板（实时数据）占剩余空间 */
 .side-column:last-child > .panel-card:nth-child(2) {
   flex: 1;
 }
@@ -1315,6 +1434,11 @@ onBeforeUnmount(() => {
   color: #4f1600;
 }
 
+.rank-4 {
+  background: rgba(125, 158, 214, 0.22);
+  color: #ffffff;
+}
+
 .ranking-name,
 .feed-name {
   color: #f6fbff;
@@ -1373,10 +1497,6 @@ onBeforeUnmount(() => {
   border-radius: inherit;
   background: linear-gradient(90deg, #1E5AA8, #3B82F6 60%, #F5A623);
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
-}
-
-.feed-item {
-  justify-content: flex-start;
 }
 
 .feed-avatar {
