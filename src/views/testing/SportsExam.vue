@@ -838,104 +838,6 @@
       </div>
     </ElDialog>
 
-    <!-- 实时考试监控面板 -->
-    <ElDialog
-      v-model="examMonitorVisible"
-      title="考试监控"
-      width="900px"
-      :close-on-click-modal="false"
-    >
-      <div class="exam-monitor">
-        <div class="monitor-left">
-          <div class="video-container">
-            <div class="video-wrapper">
-              <el-icon :size="128" color="#333"><VideoCamera /></el-icon>
-              <div class="video-overlay">
-                <div class="skeleton-overlay">
-                  <div class="skeleton-line" style="top: 20%; left: 30%; width: 40%;"></div>
-                  <div class="skeleton-line" style="top: 40%; left: 20%; width: 60%;"></div>
-                  <div class="skeleton-line" style="top: 60%; left: 25%; width: 50%;"></div>
-                </div>
-              </div>
-              <div v-if="isViolationDetected" class="violation-warning">
-                <span class="warning-icon">⚠️</span>
-                <span>{{ violationMessage }}</span>
-              </div>
-            </div>
-            <div class="video-controls">
-              <el-button size="small" :icon="VideoPlay" @click="toggleRecording">
-                {{ isRecording ? '暂停' : '开始' }}
-              </el-button>
-              <el-button size="small" :icon="Refresh" @click="resetDetection">重置</el-button>
-            </div>
-          </div>
-        </div>
-        <div class="monitor-right">
-          <div class="monitor-section">
-            <h4>当前考生</h4>
-            <div v-if="currentExamStudent" class="current-student">
-              <img :src="currentExamStudent.avatar" :alt="currentExamStudent.name" class="mini-avatar" />
-              <div class="student-detail">
-                <span class="student-name">{{ currentExamStudent.name }}</span>
-                <span class="student-class">{{ currentExamStudent.class }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="monitor-section">
-            <h4>实时成绩</h4>
-            <div class="real-time-score">
-              <span class="score-number">{{ currentScore }}</span>
-              <span class="score-unit">米</span>
-            </div>
-          </div>
-          <div class="monitor-section">
-            <h4>动作分析</h4>
-            <div class="action-analysis">
-              <div class="analysis-item">
-                <span class="analysis-label">姿态角度</span>
-                <span class="analysis-value good">75°</span>
-              </div>
-              <div class="analysis-item">
-                <span class="analysis-label">速度</span>
-                <span class="analysis-value good">3.2m/s</span>
-              </div>
-              <div class="analysis-item">
-                <span class="analysis-label">腾空高度</span>
-                <span class="analysis-value warning">42cm</span>
-              </div>
-              <div class="analysis-item">
-                <span class="analysis-label">落地稳定性</span>
-                <span class="analysis-value good">稳定</span>
-              </div>
-            </div>
-          </div>
-          <div class="monitor-section">
-            <h4>违规检测</h4>
-            <div class="violation-detection">
-              <div :class="['detection-item', isViolationDetected ? 'violation' : 'normal']">
-                <span class="detection-icon">{{ isViolationDetected ? '✗' : '✓' }}</span>
-                <span>{{ isViolationDetected ? violationMessage : '检测正常' }}</span>
-              </div>
-            </div>
-            <div class="violation-types">
-              <h5>违规类型</h5>
-              <div class="violation-tags">
-                <span v-for="type in violationTypes" :key="type.value" 
-                      :class="['violation-tag', selectedViolationType === type.value ? 'selected' : '']"
-                      @click="selectedViolationType = type.value">
-                  {{ type.label }}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="monitor-actions">
-            <el-button type="danger" @click="markCurrentViolation">标记违规</el-button>
-            <el-button type="primary" @click="finishCurrentExam">完成测试</el-button>
-          </div>
-        </div>
-      </div>
-    </ElDialog>
-
     <!-- 成绩归档弹窗 -->
     <el-dialog v-model="showArchiveDialog" title="成绩归档管理" width="800px" :close-on-click-modal="false">
       <div class="archive-manager">
@@ -975,7 +877,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox, ElDialog } from 'element-plus'
-import { Download, VideoPlay, Document, User, Refresh, Histogram, FolderAdd, VideoCamera, Setting, Warning } from '@element-plus/icons-vue'
+import { Download, VideoPlay, Document, User, Refresh, Histogram, FolderAdd, Setting, Warning } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import echarts from '@/utils/echarts'
 import store from '../../store/global'
@@ -1369,17 +1271,7 @@ const recognitionColumns = ref([
   { prop: 'duration', label: '耗时(ms)', minWidth: '100' },
 ])
 
-// 考试监控相关
-const examMonitorVisible = ref(false)
-const currentExamStudent = ref(null)
-const isRecording = ref(false)
-const isViolationDetected = ref(false)
-const violationMessage = ref('')
-const currentScore = ref(0)
-const selectedViolationType = ref('')
-let scoreInterval = null
-
-// 违规类型
+// 违规类型（违规记录弹窗使用）
 const violationTypes = [
   { value: 'line', label: '踩线' },
   { value: 'falseStart', label: '抢跑' },
@@ -1895,26 +1787,15 @@ const startRecognitionProcess = () => {
       name: student.studentName,
       class: student.class,
       studentId: student.studentId,
+      event: student.event,
       avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'
     }
     recognitionStatus.value = 'success'
-    recognitionStatusText.value = '识别成功'
+    recognitionStatusText.value = '识别成功，请点击"确认开始考试"进入测试终端'
     recognitionTime.value = Date.now() - startTime
     
     saveRecognitionRecord(student, 'success', recognitionTime.value)
-    
-    router.push({ 
-      path: '/test-terminal', 
-      query: { 
-        event: student.event || '立定跳远', 
-        mode: '单人模式',
-        category: 'exam',
-        studentId: student.studentId,
-        studentName: student.studentName,
-        studentClass: student.class,
-        fromRecognition: 'true'
-      } 
-    })
+    // 不自动跳转，由用户点击"确认开始考试"按钮触发 confirmExamWithFace
   }, 2500)
 }
 
@@ -2186,123 +2067,28 @@ const initSummaryCharts = () => {
   }
 }
 
-// 确认面部识别开始考试
+// 确认面部识别开始考试 → 跳转测试终端
 const confirmExamWithFace = () => {
+  const student = recognizedStudent.value
+  if (!student) {
+    ElMessage.warning('未识别到学生信息')
+    return
+  }
   faceRecognitionVisible.value = false
-  currentExamStudent.value = recognizedStudent.value
-  examMonitorVisible.value = true
-  startExamRecording()
-}
-
-// 开始考试录制
-const startExamRecording = () => {
-  isRecording.value = true
-  currentScore.value = 0
-  isViolationDetected.value = false
-  violationMessage.value = ''
-  
-  // 清除之前的 interval
-  if (scoreInterval) {
-    clearInterval(scoreInterval)
-    scoreInterval = null
-  }
-  
-  // 模拟成绩检测过程
-  let score = 0
-  const random = createSeededRandom(schoolId.value + '_examRecording')
-  scoreInterval = setInterval(() => {
-    score += random() * 0.5
-    currentScore.value = score.toFixed(2)
-    
-    // 随机检测违规
-    if (random() > 0.95 && !isViolationDetected.value) {
-      isViolationDetected.value = true
-      violationMessage.value = '检测到疑似违规动作'
+  addLog('开始考试', '', `面部识别后开始考试：${student.name}`)
+  router.push({
+    path: '/test-terminal',
+    query: {
+      event: student.event || '立定跳远',
+      mode: '单人模式',
+      category: 'exam',
+      studentId: student.studentId,
+      studentName: student.name,
+      studentClass: student.class,
+      fromRecognition: 'true'
     }
-    
-    if (score >= 2.5) {
-      clearInterval(scoreInterval)
-      scoreInterval = null
-    }
-  }, 300)
-}
-
-// 切换录制状态
-const toggleRecording = () => {
-  isRecording.value = !isRecording.value
-  if (isRecording.value) {
-    ElMessage.info('已开始录制')
-  } else {
-    ElMessage.info('已暂停录制')
-  }
-}
-
-// 重置检测
-const resetDetection = () => {
-  currentScore.value = 0
-  isViolationDetected.value = false
-  violationMessage.value = ''
-}
-
-// 标记当前违规（从考试监控弹窗）
-const markCurrentViolation = () => {
-  ElMessageBox.confirm(
-    `确定要标记 ${currentExamStudent.value?.name} 的考试为违规吗？`,
-    '标记违规',
-    {
-      confirmButtonText: '确定标记',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }
-  ).then(() => {
-    isViolationDetected.value = true
-    violationMessage.value = '已人工标记违规'
-
-    // 持久化违规记录
-    const student = currentExamStudent.value
-    if (student) {
-      const now = new Date()
-      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      const vType = selectedViolationType.value || '其他'
-      const vTypeLabel = violationTypes.find(v => v.value === vType)?.label || vType || '其他'
-
-      violationRecords.value.unshift({
-        studentName: student.name,
-        studentId: student.id,
-        event: examConfig.value?.event || '未知项目',
-        violationType: vTypeLabel,
-        date: dateStr,
-        description: '实时监控中人工标记违规',
-        severity: '一般',
-        status: '有效',
-        markedBy: '管理员'
-      })
-    }
-    ElMessage.success('已标记违规')
-  }).catch(() => {
-    ElMessage.info('已取消标记')
   })
 }
-
-// 完成当前考试
-const finishCurrentExam = () => {
-  examMonitorVisible.value = false
-  isRecording.value = false
-  if (scoreInterval) {
-    clearInterval(scoreInterval)
-    scoreInterval = null
-  }
-  ElMessage.success(`考试完成！成绩：${currentScore.value}米`)
-}
-
-// 监听识别状态变化，自动开始识别流程
-watch(recognitionStatus, (newVal, oldVal) => {
-  if (newVal === 'idle' && faceRecognitionVisible.value) {
-    setTimeout(() => {
-      startRecognitionProcess()
-    }, 500)
-  }
-})
 
 const initGradeChart = () => {
   if (!gradeChart.value) return
@@ -2545,16 +2331,8 @@ onBeforeUnmount(() => {
   if (progressChartInstance) progressChartInstance.dispose()
   if (summaryChartInstance) summaryChartInstance.dispose()
   if (classChartInstance) classChartInstance.dispose()
-  if (scoreInterval) clearInterval(scoreInterval)
 })
 
-// 监听考试监控对话框关闭，防止 scoreInterval 泄漏
-watch(examMonitorVisible, (visible) => {
-  if (!visible && scoreInterval) {
-    clearInterval(scoreInterval)
-    scoreInterval = null
-  }
-})
 
 const handleChartResize = () => {
   if (gradeChartInstance) gradeChartInstance.resize()

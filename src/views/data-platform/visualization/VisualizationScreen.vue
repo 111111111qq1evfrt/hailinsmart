@@ -487,6 +487,7 @@ const simulateRealtimeUpdate = () => {
 
 const fetchWeather = async () => {
   try {
+    
     const lat = 30.64
     const lon = 104.05
     const res = await fetch(
