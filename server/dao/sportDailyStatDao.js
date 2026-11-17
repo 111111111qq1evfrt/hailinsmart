@@ -26,7 +26,7 @@ async function upsert(schoolId, statDate, sportType, mode, conn) {
       updated_at = CURRENT_TIMESTAMP
   `
   
-  await exec.execute(sql, [schoolId, statDate, sportType, mode, schoolId, sportType, mode, statDate])
+  await exec.query(sql, [schoolId, statDate, sportType, mode, schoolId, sportType, mode, statDate])
 }
 
 async function getByDateRange(schoolId, startDate, endDate, options = {}) {

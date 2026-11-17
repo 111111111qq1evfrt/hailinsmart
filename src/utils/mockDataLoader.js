@@ -8,14 +8,36 @@
 
 import { mockDB, getSchoolData } from '@/mock'
 import { createSeededRandom } from './seededRandom'
+import { getScoreStandards, evaluateScore } from './scoreStandard'
 
 /**
- * 根据学校ID获取完整的学校数据
- * @param {string} schoolId - 学校ID
- * @returns {object} 学校数据对象
+ * 等距抽样：花名册较大（子荣 1517 / 林海 702）时，避免模拟数据全集中在同一个班
  */
+function sampleStudents(students, count) {
+  if (!Array.isArray(students)) return []
+  if (students.length <= count) return students
+  const step = Math.floor(students.length / count)
+  return Array.from({ length: count }, (_, i) => students[i * step]).filter(Boolean)
+}
+
+// 生成结果按学校缓存，避免大花名册（1500+ 人）每次调用重复生成
+// 但学生名单每次重新构建（dist 更新）后必须失效——否则会一直用旧名单生成 examResults
+const mockDataCache = new Map()
+
+/** 手动清除某学校的缓存（mock 学生名单更新后调用） */
+export const clearMockDataCache = (schoolId) => {
+  if (schoolId) mockDataCache.delete(schoolId)
+  else mockDataCache.clear()
+}
+
 export const getSchoolMockData = (schoolId) => {
   const schoolData = getSchoolData(schoolId)
+  const cacheKey = schoolId || 'default-school'
+  // 用学生名单的学号首条当指纹，名单变了自动让缓存失效
+  const fingerprint = (schoolData?.students?.[0]?.id || '') + '|' + (schoolData?.students?.length || 0)
+  if (mockDataCache.has(cacheKey) && mockDataCache.get(cacheKey)._fp === fingerprint) {
+    return mockDataCache.get(cacheKey)
+  }
   
   // 为每个学校创建固定的随机种子，保证数据可复现
   const random = createSeededRandom(schoolId || 'default-school')
@@ -31,39 +53,49 @@ export const getSchoolMockData = (schoolId) => {
       ...(schoolData?.systemStats || {})
     },
     
-    examResults: generateExamResults(schoolData?.students || [], schoolData?.schoolInfo?.name || '', random),
+    examResults: generateExamResults(schoolData?.students || [], schoolData?.schoolInfo?.name || '', random, schoolId),
     nationalTestResults: generateNationalTestResults(schoolData?.students || [], schoolData?.schoolInfo?.name || '', random),
     practiceRecords: generatePracticeRecords(schoolData?.students || [], schoolData?.schoolInfo?.name || '', random),
     evaluationRecords: generateEvaluationRecords(schoolData?.students || [], schoolData?.schoolInfo?.name || '', schoolId, random),
-    lessonRecords: generateLessonRecords(schoolData?.teachers || [], schoolData?.schoolInfo?.name || '', random)
+    lessonRecords: generateLessonRecords(schoolData?.teachers || [], schoolData?.schoolInfo?.name || '', random),
+    _fp: fingerprint
   }
   
+  mockDataCache.set(cacheKey, result)
   return result
 }
 
 /**
  * 生成考试成绩数据
  */
-function generateExamResults(students, schoolName, random) {
+function generateExamResults(students, schoolName, random, schoolId) {
   const events = ['立定跳远', '仰卧起坐', '坐位体前屈', '50米跑', '跳绳', '引体向上']
-  const grades = ['优秀', '良好', '及格', '不及格']
   const categories = ['体育考试', '体育课堂', '运动会', '体育中考']
-  
-  return students.slice(0, 20).flatMap(student => {
+  const standards = getScoreStandards(schoolId)
+
+  return sampleStudents(students, 20).flatMap(student => {
     const numEvents = Math.floor(random() * 3) + 2
     const selectedEvents = [...events].sort(() => random() - 0.5).slice(0, numEvents)
-    
-    return selectedEvents.map(event => ({
-      studentId: student.id,
-      studentName: student.name,
-      class: `${student.grade || ''}${student.class || ''}`,
-      className: `${student.grade || ''}${student.class || ''}`,
-      event,
-      score: generateScore(event, random),
-      grade: grades[Math.floor(random() * grades.length)],
-      date: generateDate(random),
-      category: categories[Math.floor(random() * categories.length)]
-    }))
+
+    return selectedEvents.map(event => {
+      const rawScore = generateScore(event, random)
+      // 与大沩推送数据保持一致：成绩统一换算成百分制，等级由评分标准推导
+      const evaluated = evaluateScore(event, rawScore, standards)
+
+      return {
+        studentId: student.id,
+        studentName: student.name,
+        class: `${student.grade || ''}${student.class || ''}`,
+        className: `${student.grade || ''}${student.class || ''}`,
+        event,
+        score: evaluated ? `${evaluated.score}` : String(rawScore),
+        grade: evaluated ? evaluated.level : '未评级',
+        rawScore: String(rawScore),
+        rawUnit: evaluated ? evaluated.unit : '',
+        date: generateExamDateTime(random),
+        category: categories[Math.floor(random() * categories.length)]
+      }
+    })
   })
 }
 
@@ -122,7 +154,7 @@ function generatePracticeRecords(students, schoolName, random) {
   const projects = ['跳绳', '仰卧起坐', '立定跳远', '50米跑', '坐位体前屈', '引体向上']
   const statuses = ['已完成', '已完成', '已完成', '进行中', '待评分']
 
-  return students.slice(0, 12).flatMap(student => {
+  return sampleStudents(students, 12).flatMap(student => {
     const numRecords = Math.floor(random() * 4) + 1
     return Array.from({ length: numRecords }, (_, i) => {
       const event = projects[Math.floor(random() * projects.length)]
@@ -209,7 +241,7 @@ function generateEvaluationRecords(students, schoolName, schoolId, random) {
 
   const rand = (min, max) => Math.floor(min + random() * (max - min + 1))
 
-  return students.slice(0, sliceCount).flatMap((student, idx) => {
+  return sampleStudents(students, sliceCount).flatMap((student, idx) => {
     const className = `${student.grade || '三年级'}${student.class || '1班'}`
     const numRecords = isZirong ? (1 + (idx % 2)) : isLinhai ? (2 + (idx % 2)) : (1 + (idx % recordsPerStudent))
     return Array.from({ length: numRecords }, (_, i) => {
@@ -303,6 +335,19 @@ function generateScore(event, random) {
     default:
       return Math.floor(60 + random() * 40)
   }
+}
+
+/**
+ * 生成带时分的考试时间（与大沩推送数据格式统一：YYYY-MM-DD HH:mm）
+ */
+function generateExamDateTime(random) {
+  const start = new Date('2026-01-01')
+  const end = new Date('2026-07-16')
+  const date = new Date(start.getTime() + random() * (end.getTime() - start.getTime()))
+  const pad = (n) => String(n).padStart(2, '0')
+  const hour = Math.floor(random() * 12) + 8
+  const minute = Math.floor(random() * 60)
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(hour)}:${pad(minute)}`
 }
 
 /**

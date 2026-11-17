@@ -115,8 +115,8 @@
             <div class="attachments-list">
               <div v-for="(file, index) in currentNotice.attachments" :key="index" class="attachment-item">
                 <span class="file-icon"><el-icon :size="16" color="#1E5AA8"><component :is="getFileIcon(file.type)" /></el-icon></span>
-                <div class="file-info"><span class="file-name">{{ file.name }}</span><span class="file-size">{{ file.size }}</span></div>
-                <el-button link type="primary" size="small">下载</el-button>
+                <div class="file-info"><span class="file-name">{{ file.name }}</span><span class="file-size">{{ formatSize(file.size) }}</span></div>
+                <el-button link type="primary" size="small" @click="onAttachmentDownload(file)">下载</el-button>
               </div>
             </div>
           </div>
@@ -207,10 +207,23 @@
           <el-date-picker v-if="createNoticeForm.isScheduled" v-model="createNoticeForm.scheduledTime" type="datetime" placeholder="选择发送时间" style="margin-left: 12px" />
         </el-form-item>
         <el-form-item label="附件上传">
-          <el-upload drag multiple action="/upload" :auto-upload="false">
+          <el-upload
+            drag
+            multiple
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+            :file-list="createNoticeForm.attachments"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            :before-upload="() => false"
+          >
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">将文件拖到此处，或 <em>点击上传</em></div>
-            <template #tip><div class="el-upload__tip">支持 PDF、Word、Excel 等格式，单个文件不超过 20MB</div></template>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持 PDF、Word、Excel、PPT 等格式，单个文件不超过 20MB
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
       </el-form>
@@ -245,6 +258,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import store from '@/store/global'
 import { generateDeterministicId } from '@/utils/seededRandom'
 import { sendBroadcastNotification } from '@/composables/useNotifications'
+import { saveAttachment, deleteAttachment, downloadAttachment } from '@/utils/attachmentStore'
 
 const schoolId = computed(() => store.state.school.id || 'hailin-second-primary')
 
@@ -628,6 +642,78 @@ const formatClasses = (classes) => {
     if (m) return `${gradeNames[parseInt(m[1]) - 1]}年级${m[2]}班`
     return c
   }).join('、')
+}
+
+// ==================== 附件处理（纯前端 IndexedDB） ====================
+const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+
+const formatSize = (size) => {
+  if (!size) return '—'
+  if (typeof size === 'string') return size // mock 数据里已经是 "128KB" 这种格式
+  if (size < 1024) return size + 'B'
+  if (size < 1024 * 1024) return (size / 1024).toFixed(1) + 'KB'
+  return (size / 1024 / 1024).toFixed(2) + 'MB'
+}
+
+const getFileType = (name) => {
+  const ext = name.split('.').pop().toLowerCase()
+  if (['pdf'].includes(ext)) return 'pdf'
+  if (['doc', 'docx'].includes(ext)) return 'word'
+  if (['xls', 'xlsx'].includes(ext)) return 'excel'
+  if (['ppt', 'pptx'].includes(ext)) return 'ppt'
+  return 'other'
+}
+
+// el-upload 文件选中 / 拖拽进来时触发：存 IndexedDB
+const handleFileChange = async (uploadFile, fileList) => {
+  const raw = uploadFile.raw || uploadFile
+  if (!raw || !raw.size) return
+  if (raw.size > MAX_FILE_SIZE) {
+    ElMessage.error(`文件 ${raw.name} 超过 20MB，已跳过`)
+    // 从 fileList 里移除超限的
+    createNoticeForm.value.attachments = fileList.filter(f => (f.raw || f).size <= MAX_FILE_SIZE)
+    return
+  }
+
+  try {
+    const meta = await saveAttachment(raw)
+    // 把 el-upload 里的文件对象替换成带 id 的元数据
+    const target = createNoticeForm.value.attachments.find(
+      f => (f.raw?.name === raw.name || f.name === raw.name) && (f.raw?.size === raw.size || f.size === raw.size)
+    )
+    if (target) {
+      target.id = meta.id
+      target.size = meta.size
+      target.name = meta.name
+      target.type = getFileType(meta.name)
+    }
+    ElMessage.success(`附件已保存：${meta.name}`)
+  } catch (err) {
+    console.error('[AttachmentStore] 保存失败：', err)
+    ElMessage.error(`附件保存失败：${raw.name}`)
+  }
+}
+
+// el-upload 移除文件时：从 IndexedDB 删除
+const handleFileRemove = async (uploadFile, fileList) => {
+  const id = uploadFile.id
+  if (id && id.startsWith('att_')) {
+    try { await deleteAttachment(id) } catch (e) { /* ignore */ }
+  }
+  createNoticeForm.value.attachments = fileList
+}
+
+// 详情弹窗里下载附件
+const onAttachmentDownload = async (file) => {
+  if (!file.id || !file.id.startsWith('att_')) {
+    // mock 数据没有存 IndexedDB，给个提示
+    ElMessage.info('示例附件，请新建通知后上传真实文件')
+    return
+  }
+  const ok = await downloadAttachment(file.id, file.name)
+  if (!ok) {
+    ElMessage.warning('附件可能已被清理，请重新上传')
+  }
 }
 
 // ==================== 图表初始化 ====================

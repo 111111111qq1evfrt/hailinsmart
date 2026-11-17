@@ -17,15 +17,23 @@ function verifyPushSign(req, res, next) {
     return res.status(200).json({ code: '-1', message: '时间戳过期' })
   }
 
+  // 根据 body 里的 school_id 匹配对应 check_string，兜底用默认值
+  const schoolId = (req.body && (req.body.school_id || req.body.schoolId)) || ''
+  const checkString = (schoolId && config.schoolCheckStrings[schoolId]) || config.checkString
+
   const expectedSign = crypto
     .createHash('md5')
-    .update(config.checkString + timestamp)
+    .update(checkString + timestamp)
     .digest('hex')
     .toLowerCase()
 
   if (sign !== expectedSign) {
     return res.status(200).json({ code: '-1', message: '签名验证失败' })
   }
+
+  // 把解析到的 school_id 和 checkString 挂到 req 上，方便后续使用
+  req.daiweiSchoolId = schoolId
+  req.usedCheckString = checkString
 
   next()
 }

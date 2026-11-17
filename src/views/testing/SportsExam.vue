@@ -119,13 +119,14 @@
       title="考试记录"
       search-placeholder="搜索学生姓名/学号"
       :search-fields="['studentName', 'studentId']"
+      default-sort-prop="date"
+      default-sort-order="descending"
       @refresh="refreshData"
       @cell-edit="handleCellEdit"
     >
       <template #studentName="{ row }">
         <div class="student-name-cell">
-          <span :class="{ 'name-warning': row.grade === '不及格' }">{{ row.studentName }}</span>
-          <el-tag v-if="row.grade === '不及格'" size="small" type="danger" class="makeup-tag">需补测</el-tag>
+          <span :class="{ 'name-warning': row.grade === '不及格' && !String(row.studentName).startsWith('未匹配') }">{{ row.studentName }}</span>
           <el-tag v-if="hasViolation(row.studentId, row.event)" size="small" type="danger" effect="dark" class="violation-badge">违规</el-tag>
         </div>
       </template>
@@ -148,8 +149,12 @@
         <span class="rank-value">{{ getRank(row) }}</span>
       </template>
 
+      <template #rawScore="{ row }">
+        <span class="raw-score">{{ formatRawScore(row) }}</span>
+      </template>
+
       <template #score="{ row }">
-        <span class="score-value">{{ row.score }}</span>
+        <span class="score-value">{{ row.score }}<span v-if="row.score !== '—'" class="score-unit"> 分</span></span>
       </template>
 
       <template #grade="{ row }">
@@ -188,24 +193,6 @@
             <div class="grid-item">
               <span class="grid-label">考试项目</span>
               <span class="grid-value">{{ selectedExam.event }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="detail-section">
-          <h4>考试进度</h4>
-          <div class="progress-container">
-            <div class="progress-header">
-              <span>已考项目: {{ getStudentExamCount(selectedExam.studentId) }} / {{ totalExamEvents.length }}</span>
-              <span>完成率: {{ getStudentExamProgress(selectedExam.studentId) }}%</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: getStudentExamProgress(selectedExam.studentId) + '%' }"></div>
-            </div>
-            <div class="progress-events">
-              <div v-for="event in totalExamEvents" :key="event" :class="['event-tag', isExamCompleted(selectedExam.studentId, event) ? 'completed' : 'pending']">
-                {{ event }}
-              </div>
             </div>
           </div>
         </div>
@@ -881,7 +868,7 @@ import { Download, VideoPlay, Document, User, Refresh, Histogram, FolderAdd, Set
 import { useRouter } from 'vue-router'
 import echarts from '@/utils/echarts'
 import store from '../../store/global'
-import { getSchoolMockData } from '../../utils/mockDataLoader'
+import { getSchoolMockData, clearMockDataCache } from '../../utils/mockDataLoader'
 import { getSchoolProfile } from '@/mock/school-data/schoolProfiles'
 import { isInterestClass, getMatchingStudentIds } from '@/utils/interestClassFilter'
 import PdfExport from '@/components/export/PdfExport.vue'
@@ -896,6 +883,9 @@ import { MOCK_CUSTOM_TEMPLATES } from '@/data/mockData'
 import { createSeededRandom } from '@/utils/seededRandom'
 import { useSportsData } from '@/composables/useSportsData'
 import sportsApi, { transformPushList } from '@/utils/daiweiPushApi'
+import { loadSchoolRoster } from '@/utils/daiweiRoster'
+import { getScoreStandards, evaluateScore, formatExamDate } from '@/utils/scoreStandard'
+import { schoolMapping } from '@/config/daiwei'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 
 const { addLog } = useOperationLog('exam')
@@ -914,6 +904,8 @@ const sportsData = useSportsData()
 const pushData = ref([])
 const pushLoading = ref(true)
 const pushDataLoaded = ref(false)
+// 大沩学生花名册（person_id → 姓名/班级），用于匹配非本校 mock 的学生
+const rosterMap = ref(new Map())
 const pageLoading = ref(true)
 
 // Mock 数据兜底
@@ -948,6 +940,12 @@ const loadPushData = async () => {
     if (res.code === '0' && res.data?.list?.length > 0) {
       pushData.value = transformPushList(res.data.list)
       pushDataLoaded.value = true
+      try {
+        rosterMap.value = await loadSchoolRoster(schoolIdVal)
+      } catch (e) {
+        console.warn('大沩学生花名册加载失败，退回本地学生表')
+        rosterMap.value = new Map()
+      }
     } else {
       // API 返回空，使用 Mock 数据
       pushData.value = mockExamData.value
@@ -968,34 +966,50 @@ const customTemplates = usePersistedRef(
   [...MOCK_CUSTOM_TEMPLATES]
 )
 
-// 将推送数据转换为考试记录格式
+// 将推送数据转换为考试记录格式（以大沩推送数据为准，不做随机兜底）
 const transformPushDataToExamResults = () => {
   const studentsArr = schoolData.value?.students || []
+  const standards = getScoreStandards(schoolId.value)
+  // 推送记录自带 school_id，先用学校 ID 判断归属，再匹配本校学号
+  const currentDaiweiSchoolId = schoolMapping[schoolId.value]?.daiweiSchoolId || schoolId.value
   const result = []
   let idx = 0
-  
+
   for (const record of pushData.value) {
+    if (record.schoolId && currentDaiweiSchoolId && record.schoolId !== currentDaiweiSchoolId) continue
     for (const item of (record.items || [])) {
-      const student = studentsArr.find(s => s.id === item.personId) || studentsArr[idx % Math.max(1, studentsArr.length)]
-      const score = item.score || Math.floor(Math.random() * 30 + 60)
-      const grade = score >= 85 ? '优秀' : score >= 70 ? '良好' : score >= 60 ? '及格' : '不及格'
-      const eventName = record.sportTypeName || '综合运动'
-      const classInfo = student?.class || '未知班级'
-      
+      const rosterStudent = item.personId ? rosterMap.value.get(item.personId) : null
+      const student = rosterStudent || (item.personId ? studentsArr.find(s => s.id === item.personId) : null)
+      // 学号在本校学生表中不存在（含空 person_id）→ 不是本校学生，不展示
+      if (!student) continue
+      // 大沩不推等级，按自定义评分标准换算百分制分数和等级
+      const evaluated = evaluateScore(record.sportType, item.score, standards)
+      // 考试分类由模式推导：测试→体育考试，练习→体育课堂
+      const category = record.mode === 2 ? '体育考试' : '体育课堂'
+      // start_time 与接收时间相差过大（如测试用的旧时间戳）时，改用接收时间
+      const startTs = Number(item.startTime)
+      const receivedTs = Number(record.receivedAt)
+      const timeDiff = startTs && receivedTs ? Math.abs(receivedTs - startTs) : 0
+      const examTs = startTs && (!receivedTs || timeDiff <= 30 * 24 * 60 * 60 * 1000)
+        ? startTs
+        : (receivedTs || startTs)
+
       result.push({
-        id: `push_${record.id}_${item.personId}_${idx}`,
-        studentId: student?.id || item.personId || `2026${String(idx + 1).padStart(3, '0')}`,
-        studentName: student?.name || `学生${idx + 1}`,
-        class: classInfo,
-        event: eventName,
-        category: record.modeName || '考试',
-        score: `${score}`,
-        grade,
-        unit: record.sportTypeUnit || '分',
-        date: record.receivedAt || new Date().toISOString(),
+        id: `push_${record.id}_${item.personId || idx}`,
+        studentId: item.personId || '',
+        studentName: student?.name || (item.personId ? `未匹配(${item.personId})` : '未识别'),
+        class: student ? `${student.grade || ''}${student.class || ''}` : '未匹配班级',
+        event: record.sportTypeName || '综合运动',
+        category,
+        score: evaluated ? `${evaluated.score}` : (item.score ?? '—'),
+        grade: evaluated ? evaluated.level : '未评级',
+        unit: evaluated ? '分' : (record.sportTypeUnit || ''),
+        rawScore: item.score ?? null,
+        rawUnit: record.sportTypeUnit || (evaluated ? evaluated.unit : ''),
+        date: formatExamDate(examTs),
         semester: '2026春季学期',
         batch: '2026年第一次考试',
-        bestScore: `${score}`,
+        bestScore: evaluated ? `${evaluated.score}` : '',
         rank: 0,
         duration: item.duration || 0,
         violation: false
@@ -1003,7 +1017,17 @@ const transformPushDataToExamResults = () => {
       idx++
     }
   }
-  
+
+  if (pushData.value.length && !result.length) {
+    console.warn('[体育考试] 推送有数据但未生成记录', {
+      schoolId: schoolId.value,
+      currentDaiweiSchoolId,
+      pushRecords: pushData.value.length,
+      students: studentsArr.length,
+      firstRecord: pushData.value[0]
+    })
+  }
+
   return result
 }
 
@@ -1398,18 +1422,22 @@ const classList = computed(() => {
   })
   return names
 })
+// 考试时间排序用真实时间戳，避免 "2026-11-02" 被 parseFloat 当成 2026 比较
+const examTimeValue = (row) => {
+  const t = new Date(String(row?.date || '').replace(' ', 'T')).getTime()
+  return isNaN(t) ? 0 : t
+}
+
 const examColumns = [
   { prop: 'studentId', label: '学号', minWidth: '200', fixed: 'left' },
-  { prop: 'studentName', label: '姓名', minWidth: '120', slot: 'studentName' },
-  { label: '年级', minWidth: '90', slot: 'schoolGrade' },
-  { label: '班级', minWidth: '90', slot: 'schoolClass' },
-  { prop: 'category', label: '考试分类', minWidth: '120', slot: 'category' },
-  { prop: 'event', label: '考试项目', minWidth: '120' },
-  { prop: 'score', label: '成绩', minWidth: '100', slot: 'score', editable: true, sortable: true },
+  { prop: 'studentName', label: '姓名', minWidth: '110', slot: 'studentName' },
+  { label: '班级', minWidth: '100', slot: 'schoolClass' },
+  { prop: 'event', label: '考试项目', minWidth: '110' },
+  { label: '原始成绩', minWidth: '120', slot: 'rawScore' },
+  { prop: 'score', label: '换算分数', minWidth: '110', slot: 'score', editable: true, sortable: true },
   { prop: 'grade', label: '等级', minWidth: '90', slot: 'grade' },
-  { label: '历史最好', minWidth: '100', slot: 'bestScore' },
-  { label: '班级排名', minWidth: '90', slot: 'rank' },
-  { prop: 'date', label: '考试日期', minWidth: '120', sortable: true }
+  { prop: 'category', label: '考试分类', minWidth: '110', slot: 'category' },
+  { prop: 'date', label: '考试时间', minWidth: '150', sortable: true, sortMethod: (a, b) => examTimeValue(a) - examTimeValue(b) }
 ]
 
 
@@ -1417,6 +1445,8 @@ const examColumns = [
 
 
 const examStats = computed(() => {
+  // KPI 和 饼图 统一基于全量考试记录，保证有数据、两者一致
+  // 筛选器只影响表格本身，避免因持久化的筛选条件导致图表/KPI 全 0
   const data = examResults.value || []
   const total = data.length
   if (total === 0) return { total: 0, excellent: 0, good: 0, pass: 0, fail: 0, violationCount: 0, avgScore: 0, bestScore: 0, worstScore: 0 }
@@ -1480,10 +1510,10 @@ const filteredExams = computed(() => {
   if (dateRange.value && dateRange.value.length === 2) {
     const [start, end] = dateRange.value
     const startTime = new Date(start).getTime()
-    const endTime = new Date(end).getTime()
+    const endTime = new Date(end).getTime() + 24 * 60 * 60 * 1000 - 1
     result = result.filter(e => {
       if (!e.date) return false
-      const t = new Date(e.date).getTime()
+      const t = new Date(String(e.date).replace(' ', 'T')).getTime()
       return t >= startTime && t <= endTime
     })
   }
@@ -1501,6 +1531,12 @@ const getBestScore = (studentId, event) => {
   const records = (examResults.value || []).filter(e => e.studentId === studentId && e.event === event)
   if (records.length === 0) return '-'
   return Math.max(...records.map(r => r.score))
+}
+
+// 原始成绩展示：数值 + 大沩/项目单位（如 152 次/分钟）
+const formatRawScore = (row) => {
+  if (row.rawScore === null || row.rawScore === undefined || row.rawScore === '') return '—'
+  return row.rawUnit ? `${row.rawScore} ${row.rawUnit}` : `${row.rawScore}`
 }
 
 const getCategoryType = (category) => {
@@ -1554,72 +1590,23 @@ const refreshData = () => {
 // 处理单元格编辑事件（快速补录成绩）
 const handleCellEdit = ({ row, field, value, action }) => {
   if (action === 'save' && field === 'score') {
-    // 验证成绩是否为有效数字
     const numValue = parseFloat(value)
     if (isNaN(numValue)) {
       ElMessage.error('请输入有效的成绩数值')
       return
     }
-    
-    // 根据项目类型验证成绩范围
-    const event = row.event
-    let isValid = true
-    let message = ''
-    
-    switch (event) {
-      case '立定跳远':
-        isValid = numValue >= 0 && numValue <= 5
-        message = '立定跳远成绩应在 0-5 米之间'
-        break
-      case '仰卧起坐':
-        isValid = numValue >= 0 && numValue <= 100
-        message = '仰卧起坐成绩应在 0-100 次之间'
-        break
-      case '坐位体前屈':
-        isValid = numValue >= -20 && numValue <= 40
-        message = '坐位体前屈成绩应在 -20 至 40 厘米之间'
-        break
-      case '50米跑':
-        isValid = numValue >= 0 && numValue <= 30
-        message = '50米跑成绩应在 0-30 秒之间'
-        break
-      case '一分钟跳绳':
-        isValid = numValue >= 0 && numValue <= 300
-        message = '一分钟跳绳成绩应在 0-300 次之间'
-        break
-      case '引体向上':
-        isValid = numValue >= 0 && numValue <= 50
-        message = '引体向上成绩应在 0-50 次之间'
-        break
-      case '800米跑':
-      case '1000米跑':
-        isValid = numValue >= 0 && numValue <= 120
-        message = '长跑成绩应在 0-120 秒之间'
-        break
-      case '肺活量':
-        isValid = numValue >= 0 && numValue <= 10000
-        message = '肺活量成绩应在 0-10000 ml 之间'
-        break
-      case '身高体重':
-        isValid = true
-        break
-    }
-    
-    if (!isValid) {
-      ElMessage.error(message)
-      // 恢复原始值
-      row[field] = row._originalScore || row[field]
+
+    // 换算分数统一为百分制，只校验 0-100
+    if (numValue < 0 || numValue > 100) {
+      ElMessage.error('换算分数应在 0-100 分之间')
       return
     }
-    
-    // 保存原始值以便校验失败时恢复
-    row._originalScore = row[field]
-    row[field] = numValue
-    
-    // 根据成绩自动计算等级
-    row.grade = calculateGrade(event, numValue)
-    
-    ElMessage.success(`成绩已更新：${row.studentName} - ${event}：${numValue}`)
+
+    row.score = numValue
+    // 等级由换算分数推导
+    row.grade = numValue >= 90 ? '优秀' : numValue >= 80 ? '良好' : numValue >= 60 ? '及格' : '不及格'
+
+    ElMessage.success(`成绩已更新：${row.studentName} - ${row.event}：${numValue} 分（${row.grade}）`)
   }
 }
 
@@ -1674,16 +1661,17 @@ const getRateColorClass = (rate) => {
 
 const exportResults = () => {
   // 导出CSV格式的成绩数据
-  const headers = ['学号', '姓名', '班级', '考试项目', '成绩', '等级', '考试日期', '状态']
+  const headers = ['学号', '姓名', '班级', '考试项目', '原始成绩', '换算分数', '等级', '考试分类', '考试时间']
   const rows = filteredExams.value.map(exam => [
     exam.studentId,
     exam.studentName,
     exam.class,
     exam.event,
+    formatRawScore(exam),
     exam.score,
     exam.grade,
-    exam.date,
-    exam.status === 'completed' ? '已完成' : '未完成'
+    exam.category,
+    exam.date
   ])
   
   const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
@@ -2096,11 +2084,22 @@ const initGradeChart = () => {
   gradeChartInstance = echarts.init(gradeChart.value)
   gradeChartInstance.showLoading()
 
+  // 直接拿 KPI 的值，不要任何中间转换
+  const s = examStats.value
+  const pieData = [
+    { value: Number(s.excellent) || 0, name: '优秀', itemStyle: { color: '#1E5AA8' } },
+    { value: Number(s.good) || 0, name: '良好', itemStyle: { color: '#3B82F6' } },
+    { value: Number(s.pass) || 0, name: '及格', itemStyle: { color: '#F5A623' } },
+    { value: Number(s.fail) || 0, name: '不及格', itemStyle: { color: '#E85D4E' } }
+  ]
+  // eslint-disable-next-line no-console
+  console.log('[饼图] 数据来源 examStats:', { total: s.total, excellent: s.excellent, good: s.good, pass: s.pass, fail: s.fail }, '→', pieData)
+
   gradeChartInstance.setOption({
     animation: true,
     animationDuration: 1000,
     animationEasing: 'cubicOut',
-    tooltip: { trigger: 'item' },
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0, textStyle: { color: '#6B7280', fontSize: 12 } },
     series: [{
       name: '成绩分布',
@@ -2109,16 +2108,11 @@ const initGradeChart = () => {
       center: ['50%', '45%'],
       avoidLabelOverlap: false,
       itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false },
+      label: { show: true, formatter: '{b}: {c}' },
       emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
       animationType: 'expansion',
       animationDurationUpdate: 500,
-      data: [
-        { value: examStats.excellent || 12, name: '优秀', itemStyle: { color: '#1E5AA8' } },
-        { value: examStats.good || 15, name: '良好', itemStyle: { color: '#3B82F6' } },
-        { value: examStats.pass || 15, name: '及格', itemStyle: { color: '#F5A623' } },
-        { value: examStats.fail || 14, name: '不及格', itemStyle: { color: '#E85D4E' } }
-      ]
+      data: pieData
     }]
   })
   gradeChartInstance.hideLoading()
@@ -2129,17 +2123,16 @@ const initProgressChart = () => {
   if (progressChartInstance) { progressChartInstance.dispose(); progressChartInstance = null }
   progressChartInstance = echarts.init(progressChart.value)
 
-  // 从 examResults 动态统计各项目已完成/未完成数量
+  // 与 KPI / 饼图 保持一致：基于全量考试记录统计各项目完成数
   const events = ['立定跳远', '跳绳', '50米跑', '仰卧起坐', '坐位体前屈', '1000米跑', '50*8往返跑', '引体向上']
   const data = examResults.value || []
-  const totalCount = data.length || 56
   const completedByEvent = {}
   data.forEach(e => {
     const event = e.event || ''
     completedByEvent[event] = (completedByEvent[event] || 0) + 1
   })
-  const completedData = events.map(ev => completedByEvent[ev] || Math.round(totalCount / events.length * 0.8))
-  const uncompletedData = events.map((ev, i) => Math.max(0, totalCount - completedData[i]))
+  const completedData = events.map(ev => completedByEvent[ev] || 0)
+  const uncompletedData = events.map(() => 0)
 
   progressChartInstance.setOption({
     animation: true,
@@ -2189,6 +2182,7 @@ const initProgressChart = () => {
   })
 }
 
+// 考试记录 / KPI 变化时，重绘饼图 + 项目进度图
 watch(examStats, () => {
   nextTick(() => {
     initGradeChart()

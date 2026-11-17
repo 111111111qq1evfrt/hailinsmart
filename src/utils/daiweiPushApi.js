@@ -1,8 +1,28 @@
 import axios from 'axios'
 import { SPORT_TYPES, getSportTypeName, getSportTypeUnit, getProductTypeName, getModeName } from '@/config/sport-types'
 import { sportTypeMapping, getSportConfigByType } from '@/config/sport-config'
+import { schoolMapping } from '@/config/daiwei'
 
 const BASE_URL = '/api/sports'
+
+// 将前端 school slug 或 UUID 统一转换为后端存储的 daiwei UUID
+function resolveSchoolId(localSchoolId) {
+  if (!localSchoolId) return localSchoolId
+  const mapping = schoolMapping[localSchoolId]
+  if (mapping?.daiweiSchoolId) {
+    return mapping.daiweiSchoolId
+  }
+  // 已经是 UUID 格式就直接返回
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(localSchoolId)) {
+    return localSchoolId
+  }
+  console.warn('[sports] school slug 不在 daiwei 映射中，将按原值请求:', localSchoolId)
+  return localSchoolId
+}
+
+// 动态数据禁用浏览器缓存，避免 304 命中旧空响应
+const NO_CACHE = { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } }
+const withNonce = (params) => ({ ...params, _t: Date.now() })
 
 // 请求级缓存：相同参数 30 秒内复用 Promise，避免重复请求
 const requestCache = new Map()
@@ -20,36 +40,41 @@ function getCachedRequest(cacheKey, requestFn) {
 
 const sportsApi = {
   async getList(schoolId, filters = {}) {
-    const params = { school_id: schoolId, ...filters }
+    const resolvedId = resolveSchoolId(schoolId)
+    const params = { school_id: resolvedId, ...filters }
     const cacheKey = `${BASE_URL}/list?${new URLSearchParams(params).toString()}`
     return getCachedRequest(cacheKey, async () => {
-      const res = await axios.get(`${BASE_URL}/list`, { params })
+      const res = await axios.get(`${BASE_URL}/list`, { ...NO_CACHE, params: withNonce(params) })
       return res.data
     })
   },
 
   async getTodayStats(schoolId) {
-    const cacheKey = `${BASE_URL}/stats/today?school_id=${schoolId}`
+    const resolvedId = resolveSchoolId(schoolId)
+    const cacheKey = `${BASE_URL}/stats/today?school_id=${resolvedId}`
     return getCachedRequest(cacheKey, async () => {
-      const res = await axios.get(`${BASE_URL}/stats/today`, { params: { school_id: schoolId } })
+      const res = await axios.get(`${BASE_URL}/stats/today`, { ...NO_CACHE, params: withNonce({ school_id: resolvedId }) })
       return res.data
     })
   },
 
   async getRanking(schoolId, sportType, limit = 100) {
-    const params = { school_id: schoolId, sport_type: sportType, limit }
+    const resolvedId = resolveSchoolId(schoolId)
+    const params = { school_id: resolvedId, sport_type: sportType, limit }
     const cacheKey = `${BASE_URL}/ranking?${new URLSearchParams(params).toString()}`
     return getCachedRequest(cacheKey, async () => {
-      const res = await axios.get(`${BASE_URL}/ranking`, { params })
+      const res = await axios.get(`${BASE_URL}/ranking`, { ...NO_CACHE, params: withNonce(params) })
       return res.data
     })
   },
 
   async getStatistics(schoolId) {
-    const cacheKey = `${BASE_URL}/statistics?school_id=${schoolId}`
+    const resolvedId = resolveSchoolId(schoolId)
+    const cacheKey = `${BASE_URL}/statistics?school_id=${resolvedId}`
     return getCachedRequest(cacheKey, async () => {
       const res = await axios.get(`${BASE_URL}/statistics`, {
-        params: { school_id: schoolId }
+        ...NO_CACHE,
+        params: withNonce({ school_id: resolvedId })
       })
       return res.data
     })

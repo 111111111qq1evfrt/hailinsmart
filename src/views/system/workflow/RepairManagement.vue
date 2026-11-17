@@ -32,6 +32,7 @@
       <div class="header-actions">
         <el-button :icon="Refresh" @click="refreshData">刷新</el-button>
         <el-button :icon="Download" @click="exportData">导出记录</el-button>
+        <el-button :icon="Setting" @click="showSettingsDialog = true">维修设置</el-button>
         <el-button type="primary" :icon="Plus" @click="createRepair">提交报修</el-button>
       </div>
     </div>
@@ -73,6 +74,32 @@
           <span class="card-title">报修类型统计</span>
         </div>
         <div ref="typeChart" class="chart"></div>
+      </div>
+    </div>
+
+    <!-- 巡检预警面板（预防性维护） -->
+    <div v-if="preventiveInspections.length > 0" class="inspection-panel">
+      <div class="inspection-header">
+        <span class="inspection-title">🛠️ 预防性巡检提醒</span>
+        <span class="inspection-count">{{ preventiveInspections.length }} 台设备需要巡检</span>
+      </div>
+      <div class="inspection-list">
+        <div v-for="item in preventiveInspections" :key="item.equipment" class="inspection-item">
+          <div class="inspection-info">
+            <span class="inspection-name">{{ item.equipment }}</span>
+            <span class="inspection-location">{{ item.location }}</span>
+            <span class="inspection-stats">
+              累计报修 {{ item.total }} 次
+              <span class="inspection-month">本月 {{ item.thisMonth }} 次</span>
+            </span>
+            <el-tag v-if="item.thisMonth >= preventiveThreshold * 2" type="danger" size="small">高频告警</el-tag>
+            <el-tag v-else type="warning" size="small">建议巡检</el-tag>
+          </div>
+          <div class="inspection-actions">
+            <el-button size="small" type="primary" @click="createInspectionTask(item)">创建巡检任务</el-button>
+            <el-button size="small" @click="viewEquipmentHistory(item)">查看报修历史</el-button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -375,6 +402,44 @@
       </template>
     </el-dialog>
 
+    <el-dialog v-model="showInspectionDialog" title="📋 创建巡检任务" width="500px">
+      <div class="inspection-form">
+        <div class="form-item">
+          <span class="form-label">巡检设备</span>
+          <el-input v-model="inspectionForm.equipment" disabled />
+        </div>
+        <div class="form-item">
+          <span class="form-label">设备位置</span>
+          <el-input v-model="inspectionForm.location" disabled />
+        </div>
+        <div class="form-item">
+          <span class="form-label">巡检优先级</span>
+          <el-radio-group v-model="inspectionForm.priority">
+            <el-radio label="high">紧急</el-radio>
+            <el-radio label="normal">一般</el-radio>
+          </el-radio-group>
+        </div>
+        <div class="form-item">
+          <span class="form-label">指派巡检员</span>
+          <el-select v-model="inspectionForm.inspector" placeholder="请选择" class="w-full">
+            <el-option v-for="w in workers" :key="w.id" :label="w.name" :value="w.name" />
+          </el-select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">计划巡检日期</span>
+          <el-date-picker v-model="inspectionForm.planDate" type="date" placeholder="选择日期" class="w-full" />
+        </div>
+        <div class="form-item">
+          <span class="form-label">巡检备注</span>
+          <el-input v-model="inspectionForm.notes" type="textarea" :rows="2" />
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showInspectionDialog = false">取消</el-button>
+        <el-button type="primary" @click="submitInspection">确认创建</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 新建报修弹窗 -->
     <el-dialog v-model="showCreateDialog" title="新建报修申请" width="700px">
       <div class="create-repair-form">
@@ -449,15 +514,42 @@
               </el-select>
             </el-form-item>
             <el-form-item label="问题描述">
-              <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="请描述故障详情" />
+              <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="请描述故障详情（如：篮筐松动、电线破损、灯光闪烁）" @input="onDescInput" />
             </el-form-item>
             
-            <!-- 智能填报 - 故障知识库 -->
+            <!-- 智能填报 - 关键词实时推送 -->
+            <div v-if="matchedKeywords.length > 0" class="knowledge-section">
+              <h4>🤖 智能匹配到 {{ matchedKeywords.length }} 个关键词</h4>
+              <div class="keyword-tags">
+                <el-tag v-for="kw in matchedKeywords" :key="kw.keyword" class="keyword-tag" @click="applyKeyword(kw)" effect="plain">
+                  {{ kw.keyword }} → {{ kw.solution }}
+                </el-tag>
+              </div>
+            </div>
+
+            <!-- 智能填报 - 故障知识库（选故障类型后） -->
             <div v-if="createForm.faultType" class="knowledge-section">
               <h4>💡 可能的解决方案</h4>
               <div v-for="(solution, idx) in getFaultSolutions(createForm.faultType)" :key="idx" class="solution-item">
                 <span class="solution-number">{{ idx + 1 }}</span>
                 <span class="solution-text">{{ solution }}</span>
+              </div>
+            </div>
+
+            <!-- 历史报修智能联想 -->
+            <div v-if="suggestedHistory.length > 0" class="knowledge-section">
+              <h4>📚 历史相似报修（点击快速填充）</h4>
+              <div class="history-ai-list">
+                <div v-for="(record, idx) in suggestedHistory" :key="'h-'+idx" class="history-ai-item" @click="fillFromHistory(record)">
+                  <div class="history-ai-main">
+                    <span class="history-ai-name">{{ record.equipmentName }}</span>
+                    <span class="history-ai-desc">{{ record.description }}</span>
+                  </div>
+                  <div class="history-ai-meta">
+                    <el-tag size="small" :type="record.similarity >= 80 ? 'success' : record.similarity >= 50 ? 'warning' : 'info'">相似度 {{ record.similarity }}%</el-tag>
+                    <span class="history-ai-time">{{ record.submitTime }}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -533,7 +625,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, onBeforeUnmount, watch } from 'vue'
-import { Plus, Download, Search, Refresh, Upload, Warning, User, Document, Edit } from '@element-plus/icons-vue'
+import { Plus, Download, Search, Refresh, Upload, Warning, User, Document, Edit, Setting } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import echarts from '@/utils/echarts'
 import ExamTable from '@/components/table/ExamTable.vue'
@@ -655,7 +747,7 @@ const createForm = ref({
   classDescription: ''
 })
 
-// 故障知识库
+// 故障知识库（故障类型 → 解决方案）
 const faultKnowledgeBase = {
   broken: [
     '检查设备是否有明显破损或断裂',
@@ -682,6 +774,91 @@ const faultKnowledgeBase = {
     '联系维修部门'
   ]
 }
+
+// 关键词智能匹配库（关键词 → 解决方案 / 建议）
+const keywordKnowledgeBase = [
+  { keywords: ['松动', '螺丝', '摇晃', '不牢'], solution: '检查紧固件，建议立即上紧或更换螺丝包', faultType: 'safety' },
+  { keywords: ['破损', '破洞', '撕裂', '断裂'], solution: '部件已损坏，需更换配件', faultType: 'broken' },
+  { keywords: ['漏电', '触电', '电线', '短路', '冒烟'], solution: '⚠️ 用电安全！立即断电，安排电工紧急处理', faultType: 'safety', priority: 'high' },
+  { keywords: ['黑屏', '不亮', '没反应', '故障', '失灵'], solution: '电子设备故障，先断电重启测试，不行送修', faultType: 'degraded' },
+  { keywords: ['闪烁', '忽明忽暗'], solution: '接触不良或灯管老化，建议更换灯管/检查线路', faultType: 'degraded' },
+  { keywords: ['充气', '气压', '扁', '气不足'], solution: '需充气或更换内胆', faultType: 'broken' },
+  { keywords: ['网', '球网', '篮筐', '框'], solution: '球类器材损坏，建议整体更换配件', faultType: 'broken' },
+  { keywords: ['计数', '不准', '算错'], solution: '计数器校准或更换电池', faultType: 'degraded' },
+  { keywords: ['空调', '制冷', '制热', '漏水'], solution: '空调故障，建议清洗滤网/补充冷媒', faultType: 'degraded' },
+  { keywords: ['水压', '漏水', '堵塞', '过滤'], solution: '水管/过滤系统问题，清理或更换滤芯', faultType: 'degraded' },
+  { keywords: ['灯', '照明', '灯光'], solution: '照明系统，更换灯管/检查线路', faultType: 'degraded' },
+  { keywords: ['锁', '门', '钥匙'], solution: '门锁损坏，更换锁芯或维修', faultType: 'broken' },
+  { keywords: ['皮带', '跑', '跑步机'], solution: '运动器材皮带打滑/磨损，需更换皮带', faultType: 'degraded' },
+  { keywords: ['噪音', '响', '异响', '震动'], solution: '异常振动/异响，立即停机检查轴承/螺丝', faultType: 'safety' },
+  { keywords: ['生锈', '腐蚀', '氧化'], solution: '金属部件锈蚀，除锈刷漆或更换', faultType: 'broken' },
+  { keywords: ['滑', '倒', '湿'], solution: '⚠️ 滑倒风险！立即设置警示，擦干地面', faultType: 'safety', priority: 'high' },
+]
+
+// 实时匹配到的关键词（前端 DEMO：描述输入时触发）
+const matchedKeywords = computed(() => {
+  const desc = createForm.value.description || ''
+  if (!desc.trim()) return []
+  const results = []
+  for (const item of keywordKnowledgeBase) {
+    const hitKw = item.keywords.find(kw => desc.includes(kw))
+    if (hitKw) {
+      results.push({ ...item, keyword: hitKw })
+    }
+  }
+  return results.slice(0, 5)
+})
+
+// 实时触发：关键词命中时自动建议故障类型
+const onDescInput = () => {
+  if (matchedKeywords.value.length > 0 && !createForm.value.faultType) {
+    const first = matchedKeywords.value[0]
+    if (first.faultType) {
+      createForm.value.faultType = first.faultType
+      if (first.priority) createForm.value.priority = first.priority
+      ElMessage.info(`已根据关键词「${first.keyword}」自动设置故障类型`)
+    }
+  }
+}
+
+// 点击关键词应用到描述
+const applyKeyword = (kw) => {
+  const tip = `【建议】${kw.solution}`
+  if (!createForm.value.description.includes(tip)) {
+    createForm.value.description = (createForm.value.description + '\n' + tip).trim()
+  }
+  if (kw.faultType) createForm.value.faultType = kw.faultType
+  if (kw.priority) createForm.value.priority = kw.priority
+  ElMessage.success('已应用建议')
+}
+
+// 历史报修智能联想（相似度计算）
+const suggestedHistory = computed(() => {
+  const desc = createForm.value.description || ''
+  if (!desc.trim()) return []
+  const currentKw = matchedKeywords.value.map(k => k.keyword)
+  
+  const scored = repairs.value
+    .filter(r => r.status !== 'pending')  // 排除还没完成的
+    .map(r => {
+      let score = 0
+      // 关键词命中
+      if (r.description) {
+        for (const kw of currentKw) {
+          if (r.description.includes(kw)) score += 30
+        }
+      }
+      // 类型匹配
+      if (r.type === createForm.value.type) score += 20
+      // 设备名包含
+      if (createForm.value.equipmentName && r.equipmentName.includes(createForm.value.equipmentName)) score += 25
+      return { ...r, similarity: Math.min(99, score + 10) }
+    })
+    .filter(r => r.similarity >= 30)
+    .sort((a, b) => b.similarity - a.similarity)
+  
+  return scored.slice(0, 3)
+})
 
 // 用户历史报修记录
 const userHistory = computed(() => {
@@ -1031,6 +1208,78 @@ const getRepairFrequency = (equipmentName) => {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   }).length
   return { total: count, thisMonth }
+}
+
+// 全局巡检预警：统计所有高频损坏设备
+const preventiveInspections = computed(() => {
+  // 按设备名聚合报修次数
+  const equipmentMap = {}
+  repairs.value.forEach(r => {
+    if (!equipmentMap[r.equipmentName]) {
+      equipmentMap[r.equipmentName] = {
+        equipment: r.equipmentName,
+        location: r.location,
+        type: r.type,
+        total: 0,
+        thisMonth: 0,
+        lastRepair: r.submitTime
+      }
+    }
+    equipmentMap[r.equipmentName].total++
+    const d = new Date(r.submitTime)
+    const now = new Date()
+    if (d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+      equipmentMap[r.equipmentName].thisMonth++
+    }
+    if (r.submitTime > equipmentMap[r.equipmentName].lastRepair) {
+      equipmentMap[r.equipmentName].lastRepair = r.submitTime
+    }
+  })
+  
+  // 筛选本月报修 >= 阈值 的设备
+  const result = Object.values(equipmentMap)
+    .filter(item => item.thisMonth >= preventiveThreshold.value)
+    .sort((a, b) => b.thisMonth - a.thisMonth || b.total - a.total)
+  
+  return result
+})
+
+// 预防性维护弹窗
+const showInspectionDialog = ref(false)
+const inspectionForm = ref({
+  equipment: '',
+  location: '',
+  priority: 'normal',
+  inspector: '',
+  planDate: '',
+  notes: ''
+})
+
+const createInspectionTask = (item) => {
+  inspectionForm.value = {
+    equipment: item.equipment,
+    location: item.location,
+    priority: item.thisMonth >= preventiveThreshold.value * 2 ? 'high' : 'normal',
+    inspector: workers.value[0]?.name || '',
+    planDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    notes: `本月报修 ${item.thisMonth} 次，累计 ${item.total} 次。建议全面排查潜在隐患。`
+  }
+  showInspectionDialog.value = true
+}
+
+const submitInspection = () => {
+  ElMessage.success(`巡检任务已创建：${inspectionForm.value.equipment} → ${inspectionForm.value.inspector} 负责`)
+  showInspectionDialog.value = false
+}
+
+const viewEquipmentHistory = (item) => {
+  // 筛选该设备所有报修记录
+  const history = repairs.value.filter(r => r.equipmentName === item.equipment)
+  ElMessageBox.alert(
+    history.map(h => `[${h.submitTime}] ${getStatusText(h.status)} - ${h.description}`).join('\n'),
+    `${item.equipment} 报修历史（共 ${history.length} 条）`,
+    { confirmButtonText: '关闭' }
+  )
 }
 
 const getTypeText = (type) => {
@@ -2114,5 +2363,196 @@ const completeRepair = (row) => {
   font-size: 13px;
   color: #92400E;
   line-height: 1.5;
+}
+
+/* ============ 预防性巡检预警面板 ============ */
+.inspection-panel {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px solid #F59E0B;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.inspection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #D97706;
+}
+
+.inspection-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.inspection-count {
+  font-size: 13px;
+  color: #B45309;
+  background: #FFFBEB;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.inspection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inspection-item {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background 0.2s;
+}
+
+.inspection-item:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.inspection-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.inspection-name {
+  font-weight: 600;
+  color: #78350F;
+  font-size: 14px;
+}
+
+.inspection-location {
+  font-size: 13px;
+  color: #92400E;
+}
+
+.inspection-stats {
+  font-size: 13px;
+  color: #B45309;
+}
+
+.inspection-month {
+  margin-left: 8px;
+  padding: 1px 6px;
+  background: #FEE2E2;
+  border-radius: 4px;
+  color: #DC2626;
+  font-weight: 600;
+}
+
+.inspection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ============ 智能填报 关键词 ============ */
+.knowledge-section {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+
+.knowledge-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: #0369A1;
+  font-weight: 600;
+}
+
+.keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.keyword-tag {
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  border-color: #38BDF8;
+  color: #0284C7;
+}
+
+.keyword-tag:hover {
+  background: #E0F2FE;
+  transform: translateY(-1px);
+}
+
+/* ============ 历史智能联想 ============ */
+.history-ai-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-ai-item {
+  background: white;
+  border: 1px solid #E0F2FE;
+  border-radius: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-ai-item:hover {
+  border-color: #38BDF8;
+  background: #F0F9FF;
+  transform: translateX(4px);
+}
+
+.history-ai-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-ai-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.history-ai-desc {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.history-ai-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.history-ai-time {
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+/* ============ 巡检任务表单 ============ */
+.inspection-form .form-item {
+  margin-bottom: 14px;
+}
+
+.inspection-form .form-label {
+  display: block;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 </style>

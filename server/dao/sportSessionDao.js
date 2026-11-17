@@ -3,7 +3,7 @@ const db = require('../database/connection')
 async function insert(sessionData, results, conn) {
   const exec = conn || db
   
-  const [result] = await exec.execute(
+  const [result] = await exec.query(
     `INSERT INTO sport_session 
      (session_uuid, version, school_id, product_type, sport_type, mode, result_count, created_at, received_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

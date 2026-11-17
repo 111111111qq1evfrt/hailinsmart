@@ -198,6 +198,14 @@ const props = defineProps({
   showSelection: {
     type: Boolean,
     default: false
+  },
+  defaultSortProp: {
+    type: String,
+    default: ''
+  },
+  defaultSortOrder: {
+    type: String,
+    default: 'descending'
   }
 })
 
@@ -215,7 +223,11 @@ const safeSearchFields = computed(() => {
 const searchQuery = ref('')
 const currentPage = ref(1)
 const pageSize = ref(props.defaultPageSize)
-const sortConfig = ref({ prop: '', order: '' })
+const sortConfig = ref(
+  props.defaultSortProp
+    ? { prop: props.defaultSortProp, order: props.defaultSortOrder }
+    : { prop: '', order: '' }
+)
 
 const filteredData = computed(() => {
   if (!searchQuery.value) return [...safeData.value]

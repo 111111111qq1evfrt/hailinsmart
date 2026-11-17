@@ -15,12 +15,12 @@ export const schoolMapping = {
     enabled: true
   },
   'hailin-zirong-primary': {
-    daiweiSchoolId: null,
-    enabled: false
+    daiweiSchoolId: '3134e620-8c87-11f1-9123-4f0e35b91b9f',
+    enabled: true
   },
   'linhai-experimental-primary': {
-    daiweiSchoolId: null,
-    enabled: false
+    daiweiSchoolId: '495753d0-8a2c-11f1-a428-61f2db7ec537',
+    enabled: true
   }
 }
 

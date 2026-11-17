@@ -71,7 +71,7 @@
           <div class="stat-item" @mouseenter="onStatItemEnter" @mouseleave="onStatItemLeave">
             <div class="stat-glow" aria-hidden="true"></div>
             <div class="stat-value-row">
-              <span class="stat-number" data-target="2424">0</span>
+              <span class="stat-number" data-target="3528">0</span>
               <span class="stat-unit">名</span>
             </div>
             <div class="stat-label">学生受益</div>
@@ -80,7 +80,7 @@
           <div class="stat-item" @mouseenter="onStatItemEnter" @mouseleave="onStatItemLeave">
             <div class="stat-glow" aria-hidden="true"></div>
             <div class="stat-value-row">
-              <span class="stat-number" data-target="98">0</span>
+              <span class="stat-number" data-target="315">0</span>
               <span class="stat-unit">位</span>
             </div>
             <div class="stat-label">教师参与</div>
@@ -1001,14 +1001,16 @@ const fetchDemoAccounts = async () => {
   // 2. 后台尝试从 API 同步职工数据到 sessionStorage（用于登录验证匹配手机号）
   //    不阻塞示例账号展示，仅补充 storage 中的用户数据
   try {
-    const result = await getStaffList({ page: 1, size: 100 }, schoolId)
+    const result = await getStaffList({ page: 1, size: 2000 }, schoolId)
     const staffList = result?.list
       || result?.data?.staff_list
       || result?.data?.list
       || (Array.isArray(result?.data) ? result.data : null)
     if (staffList && staffList.length > 0) {
       syncUsersToStorage(staffList, schoolId, password, 'api')
-     
+      // 用大沩真实职工刷新示例账号（校领导/体育老师/班主任），取不到再保留 mock
+      const apiDemos = extractDemoAccounts(staffList, password, 'api')
+      if (apiDemos.length > 0) demoList.value = apiDemos
     }
   } catch (e) {
     console.warn('[fetchDemoAccounts] API同步失败(非阻塞):', e.message)

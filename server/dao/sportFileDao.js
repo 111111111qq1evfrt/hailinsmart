@@ -1,7 +1,7 @@
 const db = require('../database/connection')
 
 async function insert(fileData) {
-  const [result] = await db.execute(
+  const [result] = await db.query(
     `INSERT INTO sport_file (file_id, school_id, file_type, file_name, file_size, file_path, mime_type)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [

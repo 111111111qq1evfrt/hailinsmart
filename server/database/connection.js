@@ -34,7 +34,7 @@ async function getPool() {
 
 async function query(sql, params) {
   const p = await getPool()
-  const [rows] = await p.execute(sql, params)
+  const [rows] = await p.query(sql, params)
   return rows
 }
 

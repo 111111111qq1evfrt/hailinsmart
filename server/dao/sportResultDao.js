@@ -23,7 +23,7 @@ async function batchInsert(sessionId, results, conn) {
     r.face_file_id || null
   ])
   
-  await exec.execute(
+  await exec.query(
     `INSERT INTO sport_result 
      (session_id, person_id, person_id_empty, start_time, all_time, score, 
       interrupt_count, jump_speed, jump_height, jump_angle, arm_angle, 

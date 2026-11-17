@@ -32,7 +32,7 @@ export default defineConfig({
     https: true,
     proxy: {
       '/api/sports': {
-        target: 'http://localhost:8000',
+        target: process.env.VITE_SPORTS_API || 'https://hailin.dazstech.com',
         changeOrigin: true
       },
       '/api': {

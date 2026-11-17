@@ -274,6 +274,7 @@ import { usePersistedRef } from '@/composables'
 import { createSeededRandom } from '@/utils/seededRandom'
 import sportsApi, { transformPushList } from '@/utils/daiweiPushApi'
 import { getStudentListV4 } from '@/utils/daiweiApi'
+import { evaluateScore, getScoreStandards, formatExamDate } from '@/utils/scoreStandard'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import { useSportsData } from '@/composables/useSportsData'
 
@@ -390,7 +391,12 @@ const dynamicStats = computed(() => {
 })
 
 // 智能分析数据
-const currentDate = ref('2026年7月16日 星期四')
+const formatToday = () => {
+  const d = new Date()
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${weekdays[d.getDay()]}`
+}
+const currentDate = ref(formatToday())
 
 const analysisData = computed(() => {
   const stats = dynamicStats.value
@@ -595,8 +601,65 @@ const moduleList = [
   { name: '校领导面板', desc: '数据总览与决策', icon: 'DataLine', path: '/evaluation/leader', bgColor: '#FFEDD5', iconColor: '#F97316', badge: '领' }
 ]
 
-const recentExams = computed(() => (schoolData.value?.examResults || []).slice(0, 5))
-const todayPractice = computed(() => (schoolData.value?.practiceRecords || []).slice(0, 5))
+/**
+ * 大沩推送记录 → 首页表格行
+ * 学号（大沩 person_id）在本校学生表中找不到时不展示，避免出现不相干学生
+ */
+const buildPushRows = (records) => {
+  const standards = getScoreStandards(schoolId.value)
+  const studentsArr = students.value || []
+  const rows = []
+
+  for (const record of records) {
+    for (const item of (record.items || [])) {
+      const student = item.personId ? studentsArr.find(s => s.id === item.personId) : null
+      if (!student) continue
+      const evaluated = evaluateScore(record.sportType, item.score, standards)
+      // start_time 与接收时间相差过大（测试用旧时间戳）时改用接收时间
+      const startTs = Number(item.startTime)
+      const receivedTs = Number(record.receivedAt)
+      const timeDiff = startTs && receivedTs ? Math.abs(receivedTs - startTs) : 0
+      const ts = startTs && (!receivedTs || timeDiff <= 30 * 24 * 60 * 60 * 1000) ? startTs : (receivedTs || startTs)
+
+      rows.push({
+        id: `push_${record.id}_${item.personId}`,
+        studentName: student.name,
+        event: record.sportTypeName || '综合运动',
+        score: evaluated ? `${evaluated.score}` : `${item.score ?? '—'}`,
+        grade: evaluated ? evaluated.level : '未评级',
+        date: formatExamDate(ts),
+        _ts: ts || 0,
+        _mode: record.mode
+      })
+    }
+  }
+
+  return rows.sort((a, b) => b._ts - a._ts)
+}
+
+const isToday = (ts) => {
+  const d = new Date(Number(ts))
+  if (isNaN(d.getTime())) return false
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
+
+// 最近考试记录：优先用大沩真实推送，没有推送时才回退本地模拟数据
+const recentExams = computed(() => {
+  if (pushDataLoaded.value) {
+    const rows = buildPushRows(pushData.value)
+    if (rows.length) return rows.slice(0, 5)
+  }
+  return (schoolData.value?.examResults || []).slice(0, 5)
+})
+
+// 今日练习记录：只统计真实推送里的练习模式（mode=1）且发生在今天的，无数据则为空
+const todayPractice = computed(() => {
+  if (!pushDataLoaded.value) return []
+  return buildPushRows(pushData.value.filter(r => r.mode === 1))
+    .filter(row => isToday(row._ts))
+    .slice(0, 5)
+})
 
 const examColumns = ref([
   { prop: 'studentName', label: '学生姓名', minWidth: '100' },
